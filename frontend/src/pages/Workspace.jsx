@@ -30,6 +30,7 @@ function Workspace() {
     deleteFile,
     importProject,
     getProjectStats,
+    gitMetadata,
   } = useProject();
 
   const {
@@ -138,6 +139,7 @@ function Workspace() {
               projectName={projectName}
               analysisResults={analysisResults}
               onOpenFile={setCurrentFileId}
+              gitMetadata={gitMetadata}
             />
           )
         }

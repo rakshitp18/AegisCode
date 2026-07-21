@@ -1,9 +1,9 @@
 import React from "react";
 
-function ProjectDashboard({ projectName, analysisResults, onOpenFile }) {
+function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadata = null }) {
   if (!analysisResults) {
     return (
-      <div className="h-full flex items-center justify-center bg-slate-950 text-slate-400 select-none">
+      <div className="h-full flex items-center justify-center bg-slate-955 text-slate-400 select-none">
         <div className="text-center space-y-2">
           <span className="text-4xl">📊</span>
           <h3 className="text-lg font-semibold text-slate-200">No Analysis Available</h3>
@@ -56,6 +56,71 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile }) {
           </div>
         </div>
       </div>
+
+      {/* GitHub Repository Metadata Card */}
+      {gitMetadata && (
+        <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-xl space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🐙</span>
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block font-mono">GitHub Repository Source</span>
+                <a
+                  href={gitMetadata.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-lg font-bold text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1"
+                >
+                  {gitMetadata.owner}/{gitMetadata.repo}
+                </a>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <div className="bg-slate-950/60 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs">
+                <span className="text-yellow-500 text-sm">★</span>
+                <span className="text-slate-400 font-medium">Stars:</span>
+                <span className="font-bold text-slate-200">{gitMetadata.stars}</span>
+              </div>
+              <div className="bg-slate-950/60 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs">
+                <span className="text-blue-500 text-sm">⌥</span>
+                <span className="text-slate-400 font-medium">Branch:</span>
+                <span className="font-bold text-slate-200 font-mono">{gitMetadata.branch}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800/60 pt-3">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">GitHub Project Languages</span>
+            <div className="flex flex-wrap gap-1.5">
+              {gitMetadata.languages && gitMetadata.languages.length > 0 ? (
+                gitMetadata.languages.map((lang) => (
+                  <span
+                    key={lang}
+                    className="bg-slate-950/80 border border-slate-800/80 text-slate-350 px-2 py-0.5 rounded text-xs font-medium capitalize"
+                  >
+                    {lang}
+                  </span>
+                ))
+              ) : (
+                <span className="italic text-slate-600 text-xs">None declared</span>
+              )}
+            </div>
+          </div>
+
+          {gitMetadata.truncated > 0 && (
+            <div className="bg-amber-955/20 border border-amber-900/30 text-amber-300 text-xs p-3.5 rounded-lg flex gap-2">
+              <span className="text-base leading-none">⚠️</span>
+              <div>
+                <p className="font-bold">Large Repository Warning</p>
+                <p className="text-amber-400/80 mt-0.5">
+                  This repository contains {gitMetadata.truncated + 100} supported source files. We imported the first 100 files for local static analysis compliance. Future project-wide indexers will run full semantic analysis.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 2. Top Metric Highlights */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

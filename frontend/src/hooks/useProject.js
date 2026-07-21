@@ -50,6 +50,7 @@ export default function useProject() {
   ]);
 
   const [currentFileId, setCurrentFileId] = useState("1");
+  const [gitMetadata, setGitMetadata] = useState(null);
 
   const currentFile =
     files.find(file => file.id === currentFileId);
@@ -108,9 +109,10 @@ export default function useProject() {
     setFiles(remainingFiles);
   };
 
-  const importProject = (name, newFiles) => {
+  const importProject = (name, newFiles, metadata = null) => {
     setProjectName(name);
     setFiles(newFiles);
+    setGitMetadata(metadata);
     if (newFiles.length > 0) {
       setCurrentFileId(newFiles[0].id);
     }
@@ -154,5 +156,6 @@ export default function useProject() {
     deleteFile,
     importProject,
     getProjectStats,
+    gitMetadata,
   };
 }

@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { importFolder } from "../../services/folderImportService";
+import { importGitHubRepository } from "../../services/githubImportService";
 import { buildFileTree } from "../../utils/treeBuilder";
 
 // Recursive Component for Tree Nodes
@@ -142,6 +143,12 @@ function Sidebar({
   const fileInputRef = useRef(null);
   const [openFolders, setOpenFolders] = useState({});
 
+  // GitHub Import Modal State
+  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
+  const [gitHubUrl, setGitHubUrl] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+
   // Auto-expand all folders when new files are loaded/imported
   useEffect(() => {
     const initialOpen = {};
@@ -192,6 +199,25 @@ function Sidebar({
     }
   };
 
+  const handleGitHubImport = async (e) => {
+    e.preventDefault();
+    if (!gitHubUrl.trim()) return;
+
+    try {
+      setIsImporting(true);
+      setImportError("");
+      const result = await importGitHubRepository(gitHubUrl);
+      onImportProject(result.projectName, result.files, result.metadata);
+      setIsGitHubModalOpen(false);
+      setGitHubUrl("");
+    } catch (err) {
+      console.error(err);
+      setImportError(err.message || "Failed to import GitHub repository.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleToggleFolder = (folderPath) => {
     setOpenFolders((prev) => ({
       ...prev,
@@ -231,22 +257,31 @@ function Sidebar({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={handleOpenFolderClick}
-              className="text-xs bg-blue-600 text-white hover:bg-blue-500 font-semibold py-2 px-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm border border-blue-500/20 cursor-pointer"
-            >
-              <span>📁</span> Open Folder
-            </button>
+          <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleOpenFolderClick}
+                className="text-xs bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white font-semibold py-2 px-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm border border-slate-700 cursor-pointer"
+              >
+                <span>📁</span> Open Folder
+              </button>
+              <button
+                onClick={() => setIsGitHubModalOpen(true)}
+                className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm border border-blue-500/20 cursor-pointer"
+              >
+                <span>🐙</span> GitHub
+              </button>
+            </div>
+            
             <button
               onClick={() => onSelectFile(null)}
-              className={`text-xs font-semibold py-2 px-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm border cursor-pointer ${
+              className={`w-full text-xs font-semibold py-2 px-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm border cursor-pointer ${
                 currentFileId === null
                   ? "bg-blue-600 border-blue-500 text-white"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700"
+                  : "bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-805"
               }`}
             >
-              <span>📊</span> Overview
+              <span>📊</span> Project Overview Dashboard
             </button>
           </div>
 
@@ -423,6 +458,77 @@ function Sidebar({
           </div>
         </div>
       </div>
+
+      {/* GitHub Repository Import Modal Dialog */}
+      {isGitHubModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl max-w-sm w-full space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <span>🐙</span> Import from GitHub
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Enter the URL of a public repository to download and scan source code files.
+              </p>
+            </div>
+
+            <form onSubmit={handleGitHubImport} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Repository URL
+                </label>
+                <input
+                  type="text"
+                  value={gitHubUrl}
+                  onChange={(e) => setGitHubUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repository"
+                  disabled={isImporting}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 disabled:opacity-50"
+                  required
+                />
+              </div>
+
+              {importError && (
+                <div className="bg-red-950/30 border border-red-900/40 text-red-400 text-xs p-2.5 rounded-lg font-medium">
+                  {importError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsGitHubModalOpen(false);
+                    setGitHubUrl("");
+                    setImportError("");
+                  }}
+                  disabled={isImporting}
+                  className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-755 text-slate-300 font-semibold cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isImporting || !gitHubUrl.trim()}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isImporting ? (
+                    <>
+                      <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Importing...
+                    </>
+                  ) : (
+                    "Import"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
