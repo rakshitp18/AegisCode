@@ -43,7 +43,10 @@ lerna-debug.log*
 # --- Environment Variables and Secrets ---
 .env
 .env.local
-.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
 *.env
 
 # --- Node / Frontend (React/Vite) ---
@@ -51,31 +54,21 @@ node_modules/
 dist/
 dist-ssr/
 *.local
-
-# --- Python (backend_python) ---
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-ENV/
-.venv/
-.pytest_cache/
-.tox/
-.coverage
-htmlcov/
+.eslintcache
+.vite/
 
 # --- Java / Maven (backend) ---
 target/
 build/
-**/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-!**/src/main/**/build/
-!**/src/test/**/build/
 *.class
+dependency-reduced-pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.next
+release.properties
+flatmark.json
+.mvn/timing.db
+.mvn/wrapper/maven-wrapper.jar
 HELP.md
 
 # --- Project Temp / Output Directories ---
