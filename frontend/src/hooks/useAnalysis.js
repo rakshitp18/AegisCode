@@ -2,14 +2,12 @@ import { useState } from "react";
 import { analyzeCodeRequest } from "../services/analysisService";
 
 export default function useAnalysis() {
-  const [language, setLanguage] = useState("java");
-  const [code, setCode] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alertInfo, setAlertInfo] = useState(null); // { message, title } or null
 
-  const analyzeCode = async () => {
-    if (!code.trim()) {
+  const analyzeCode = async (language, code) => {
+    if (!code || !code.trim()) {
       setAlertInfo({
         message: "Please enter some code first.",
         title: "Code Required"
@@ -36,10 +34,6 @@ export default function useAnalysis() {
   };
 
   return {
-    language,
-    setLanguage,
-    code,
-    setCode,
     result,
     loading,
     analyzeCode,
