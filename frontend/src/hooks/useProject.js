@@ -6,6 +6,7 @@ export default function useProject() {
     {
       id: "1",
       name: "Main.java",
+      path: "Main.java",
       language: "java",
       content: `public class Main {
     public static void main(String[] args) {
@@ -16,6 +17,7 @@ export default function useProject() {
     {
       id: "2",
       name: "User.java",
+      path: "User.java",
       language: "java",
       content: `public class User {
     private String id;
@@ -34,6 +36,7 @@ export default function useProject() {
     {
       id: "3",
       name: "Login.java",
+      path: "Login.java",
       language: "java",
       content: `public class Login {
     public boolean login(String username, String password) {
@@ -84,6 +87,7 @@ export default function useProject() {
     const newFile = {
       id: Date.now().toString(),
       name,
+      path: name,
       language: "java",
       content: ""
     };
@@ -104,6 +108,39 @@ export default function useProject() {
     setFiles(remainingFiles);
   };
 
+  const importProject = (name, newFiles) => {
+    setProjectName(name);
+    setFiles(newFiles);
+    if (newFiles.length > 0) {
+      setCurrentFileId(newFiles[0].id);
+    }
+  };
+
+  const getProjectStats = () => {
+    const folders = new Set();
+    const languages = new Set();
+    
+    files.forEach(file => {
+      if (file.language) {
+        languages.add(file.language);
+      }
+      
+      const path = (file.path || file.name).replace(/\\/g, "/");
+      const parts = path.split("/");
+      let currentPath = "";
+      for (let i = 0; i < parts.length - 1; i++) {
+        currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
+        folders.add(currentPath);
+      }
+    });
+
+    return {
+      totalFiles: files.length,
+      totalFolders: folders.size,
+      languages: Array.from(languages)
+    };
+  };
+
   return {
     projectName,
     setProjectName,
@@ -115,5 +152,7 @@ export default function useProject() {
     updateCurrentFileLanguage,
     addNewFile,
     deleteFile,
+    importProject,
+    getProjectStats,
   };
 }

@@ -25,6 +25,8 @@ function Workspace() {
     updateCurrentFileLanguage,
     addNewFile,
     deleteFile,
+    importProject,
+    getProjectStats,
   } = useProject();
 
   const {
@@ -48,6 +50,9 @@ function Workspace() {
             onSelectFile={setCurrentFileId}
             onAddNewFile={addNewFile}
             onDeleteFile={deleteFile}
+            onImportProject={importProject}
+            setAlertInfo={setAlertInfo}
+            stats={getProjectStats()}
           />
         }
         editor={
