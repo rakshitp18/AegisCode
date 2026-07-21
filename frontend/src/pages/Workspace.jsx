@@ -1,5 +1,6 @@
 import Navbar from "../components/common/Navbar";
 import AnalyzeButton from "../components/common/AnalyzeButton";
+import AlertModal from "../components/common/AlertModal";
 
 import LanguageSelector from "../components/editor/LanguageSelector";
 import CodeEditor from "../components/editor/CodeEditor";
@@ -21,6 +22,8 @@ function Workspace() {
     result,
     loading,
     analyzeCode,
+    alertInfo,
+    setAlertInfo,
   } = useAnalysis();
 
   return (
@@ -63,6 +66,13 @@ function Workspace() {
             code={code}
           />
         }
+      />
+
+      <AlertModal
+        isOpen={!!alertInfo}
+        onClose={() => setAlertInfo(null)}
+        title={alertInfo?.title}
+        message={alertInfo?.message}
       />
     </div>
   );

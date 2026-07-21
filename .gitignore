@@ -1,5 +1,38 @@
-# Logs
-logs
+# ==========================================
+# AegisCode Monorepo .gitignore
+# ==========================================
+
+# --- Operating System Files ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- IDEs and Editors ---
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.iws
+*.iml
+*.ipr
+.apt_generated/
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
+# --- Logs and Diagnostics ---
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,25 +40,44 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# --- Environment Variables and Secrets ---
+.env
+.env.local
+.env.*.local
+*.env
 
-
-node_modules
+# --- Node / Frontend (React/Vite) ---
+node_modules/
 dist/
-dist-ssr
+dist-ssr/
 *.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-*.pyc
+# --- Python (backend_python) ---
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
 venv/
-.env
-backend/.env
+ENV/
+.venv/
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+
+# --- Java / Maven (backend) ---
+target/
+build/
+**/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+*.class
+HELP.md
+
+# --- Project Temp / Output Directories ---
+uploads/
+reports/

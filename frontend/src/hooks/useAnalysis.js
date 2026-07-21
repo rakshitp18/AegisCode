@@ -6,10 +6,14 @@ export default function useAnalysis() {
   const [code, setCode] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [alertInfo, setAlertInfo] = useState(null); // { message, title } or null
 
   const analyzeCode = async () => {
     if (!code.trim()) {
-      alert("Please enter some code first.");
+      setAlertInfo({
+        message: "Please enter some code first.",
+        title: "Code Required"
+      });
       return;
     }
 
@@ -22,7 +26,10 @@ export default function useAnalysis() {
 
     } catch (error) {
       console.error(error);
-      alert("Failed to connect to backend.");
+      setAlertInfo({
+        message: "Failed to connect to the backend server. Please verify the server is running and try again.",
+        title: "Connection Error"
+      });
     } finally {
       setLoading(false);
     }
@@ -36,5 +43,7 @@ export default function useAnalysis() {
     result,
     loading,
     analyzeCode,
+    alertInfo,
+    setAlertInfo,
   };
 }
