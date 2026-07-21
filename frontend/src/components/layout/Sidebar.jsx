@@ -135,6 +135,9 @@ function Sidebar({
   onImportProject,
   setAlertInfo,
   stats = { totalFiles: 0, totalFolders: 0, languages: [] },
+  filterType = "all",
+  onSelectFilter,
+  analysisResults = null,
 }) {
   const fileInputRef = useRef(null);
   const [openFolders, setOpenFolders] = useState({});
@@ -155,7 +158,6 @@ function Sidebar({
   }, [files]);
 
   const handleOpenFolderClick = () => {
-    // 14. Error Handling: Unsupported browser check
     const isSupported =
       typeof HTMLInputElement !== "undefined" &&
       "webkitdirectory" in HTMLInputElement.prototype;
@@ -184,7 +186,6 @@ function Sidebar({
         message: err.message || "An unexpected error occurred while importing the folder."
       });
     } finally {
-      // Clear file input so uploading the same folder again triggers onChange
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -230,12 +231,24 @@ function Sidebar({
             </button>
           </div>
 
-          <button
-            onClick={handleOpenFolderClick}
-            className="w-full text-xs bg-blue-600 text-white hover:bg-blue-500 font-semibold py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm border border-blue-500/20 cursor-pointer"
-          >
-            <span>📁</span> Open Folder
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleOpenFolderClick}
+              className="text-xs bg-blue-600 text-white hover:bg-blue-500 font-semibold py-2 px-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm border border-blue-500/20 cursor-pointer"
+            >
+              <span>📁</span> Open Folder
+            </button>
+            <button
+              onClick={() => onSelectFile(null)}
+              className={`text-xs font-semibold py-2 px-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm border cursor-pointer ${
+                currentFileId === null
+                  ? "bg-blue-600 border-blue-500 text-white"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700"
+              }`}
+            >
+              <span>📊</span> Overview
+            </button>
+          </div>
 
           <input
             type="file"
@@ -248,8 +261,102 @@ function Sidebar({
           />
         </div>
 
+        {/* Dynamic Overview Filters Cards Grid */}
+        {analysisResults && (
+          <div className="bg-slate-950/40 p-2.5 rounded-lg border border-slate-850 space-y-2 mt-1 shrink-0">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Project Overview</div>
+            <div className="grid grid-cols-2 gap-1.5 text-center">
+              <div
+                onClick={() => onSelectFilter("all")}
+                className={`p-1.5 rounded border cursor-pointer transition-all ${
+                  filterType === "all"
+                    ? "bg-slate-800 border-blue-500 text-white font-bold"
+                    : "bg-slate-900/30 border-slate-800/80 hover:border-slate-750 text-slate-400 text-[11px]"
+                }`}
+              >
+                <span className="block text-[8px] uppercase tracking-wider text-slate-500">Files</span>
+                <span className="text-xs font-black">{analysisResults.projectOverview.totalFiles}</span>
+              </div>
+              <div
+                onClick={() => onSelectFilter("loc")}
+                className={`p-1.5 rounded border cursor-pointer transition-all ${
+                  filterType === "loc"
+                    ? "bg-slate-800 border-blue-500 text-white font-bold"
+                    : "bg-slate-900/30 border-slate-800/80 hover:border-slate-750 text-slate-400 text-[11px]"
+                }`}
+              >
+                <span className="block text-[8px] uppercase tracking-wider text-slate-500">LOC</span>
+                <span className="text-xs font-black truncate max-w-full block">{analysisResults.projectOverview.loc}</span>
+              </div>
+              <div
+                onClick={() => onSelectFilter("classes")}
+                className={`p-1.5 rounded border cursor-pointer transition-all ${
+                  filterType === "classes"
+                    ? "bg-slate-800 border-blue-500 text-white font-bold"
+                    : "bg-slate-900/30 border-slate-800/80 hover:border-slate-750 text-slate-400 text-[11px]"
+                }`}
+              >
+                <span className="block text-[8px] uppercase tracking-wider text-slate-500">Classes</span>
+                <span className="text-xs font-black">{analysisResults.javaMetrics.classes}</span>
+              </div>
+              <div
+                onClick={() => onSelectFilter("methods")}
+                className={`p-1.5 rounded border cursor-pointer transition-all ${
+                  filterType === "methods"
+                    ? "bg-slate-800 border-blue-500 text-white font-bold"
+                    : "bg-slate-900/30 border-slate-800/80 hover:border-slate-750 text-slate-400 text-[11px]"
+                }`}
+              >
+                <span className="block text-[8px] uppercase tracking-wider text-slate-500">Methods</span>
+                <span className="text-xs font-black">{analysisResults.javaMetrics.methods}</span>
+              </div>
+              <div
+                onClick={() => onSelectFilter("complexity")}
+                className={`p-1.5 rounded border cursor-pointer transition-all ${
+                  filterType === "complexity"
+                    ? "bg-slate-800 border-blue-500 text-white font-bold"
+                    : "bg-slate-900/30 border-slate-800/80 hover:border-slate-750 text-slate-400 text-[11px]"
+                }`}
+              >
+                <span className="block text-[8px] uppercase tracking-wider text-slate-500">Complexity</span>
+                <span className="text-xs font-black">{analysisResults.complexityMetrics.score}</span>
+              </div>
+              <div
+                onClick={() => onSelectFilter("todos")}
+                className={`p-1.5 rounded border cursor-pointer transition-all ${
+                  filterType === "todos"
+                    ? "bg-slate-800 border-blue-500 text-white font-bold"
+                    : "bg-slate-900/30 border-slate-800/80 hover:border-slate-750 text-slate-400 text-[11px]"
+                }`}
+              >
+                <span className="block text-[8px] uppercase tracking-wider text-slate-500">TODOs</span>
+                <span className="text-xs font-black">{analysisResults.qualityMetrics.todos}</span>
+              </div>
+              <div
+                onClick={() => onSelectFilter("security")}
+                className={`col-span-2 p-1.5 rounded border cursor-pointer transition-all ${
+                  filterType === "security"
+                    ? "bg-red-950 border-red-500 text-red-100 font-bold"
+                    : analysisResults.securityWarnings.length > 0
+                    ? "bg-red-950/20 border-red-900/40 text-red-300 hover:border-red-800/80"
+                    : "bg-slate-900/30 border-slate-800/80 hover:border-slate-750 text-slate-400 text-[11px]"
+                }`}
+              >
+                <div className="flex justify-between items-center px-1 text-[11px]">
+                  <span className="text-[8px] uppercase tracking-wider text-slate-500 font-bold">Security Alerts</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${
+                    analysisResults.securityWarnings.length > 0 ? "bg-red-600 text-white animate-pulse" : "bg-slate-800 text-slate-400"
+                  }`}>
+                    {analysisResults.securityWarnings.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Dynamic Recursive File Tree */}
-        <div className="flex-1 overflow-y-auto space-y-0.5 border-t border-b border-slate-800/80 py-2.5 my-1">
+        <div className="flex-1 overflow-y-auto space-y-0.5 border-t border-b border-slate-800/80 py-2.5 my-1 min-h-[150px]">
           {sortedRootKeys.length > 0 ? (
             sortedRootKeys.map((key) => (
               <FileTreeNode
@@ -264,7 +371,9 @@ function Sidebar({
               />
             ))
           ) : (
-            <div className="text-xs text-slate-500 italic p-2 text-center">No files in project</div>
+            <div className="text-xs text-slate-500 italic p-2 text-center">
+              {filterType !== "all" ? "No files matching active filter" : "No files in project"}
+            </div>
           )}
         </div>
       </div>
