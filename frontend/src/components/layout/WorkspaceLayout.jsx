@@ -10,17 +10,17 @@ function WorkspaceLayout({
       <div className="flex flex-1 overflow-hidden">
 
         {/* Sidebar */}
-        <aside className="w-64 border-r border-slate-800">
+        <aside className="w-56 shrink-0 border-r border-slate-800">
           {sidebar}
         </aside>
 
         {/* Editor */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 min-w-0 overflow-auto">
           {editor}
         </main>
 
         {/* Right Panel */}
-        <aside className="w-96 border-l border-slate-800 overflow-auto">
+        <aside className="w-80 shrink-0 border-l border-slate-800 overflow-auto">
           {rightPanel}
         </aside>
 

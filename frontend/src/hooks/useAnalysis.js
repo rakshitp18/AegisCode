@@ -35,6 +35,7 @@ export default function useAnalysis() {
 
   return {
     result,
+    setResult,
     loading,
     analyzeCode,
     alertInfo,

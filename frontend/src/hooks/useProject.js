@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 export default function useProject() {
-  const [projectName, setProjectName] = useState("AegisCode Project");
+  const [projectName, setProjectName] = useState("No Folder Open");
   const [files, setFiles] = useState([
     {
       id: "1",

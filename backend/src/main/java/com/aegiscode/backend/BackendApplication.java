@@ -17,8 +17,17 @@ public class BackendApplication {
 
 	private static void loadDotEnv() {
 		try {
-			if (Files.exists(Paths.get(".env"))) {
-				List<String> lines = Files.readAllLines(Paths.get(".env"));
+			java.nio.file.Path envPath = Paths.get(".env");
+			if (!Files.exists(envPath)) {
+				envPath = Paths.get("backend", ".env");
+			}
+			if (!Files.exists(envPath)) {
+				envPath = Paths.get("..", "backend", ".env");
+			}
+
+			if (Files.exists(envPath)) {
+				System.out.println("Loading environment variables from: " + envPath.toAbsolutePath());
+				List<String> lines = Files.readAllLines(envPath);
 				for (String line : lines) {
 					line = line.trim();
 					if (line.isEmpty() || line.startsWith("#")) {
@@ -34,6 +43,8 @@ public class BackendApplication {
 						System.setProperty(key, value);
 					}
 				}
+			} else {
+				System.err.println("Could not locate .env file in expected paths.");
 			}
 		} catch (IOException e) {
 			System.err.println("Failed to load .env file: " + e.getMessage());

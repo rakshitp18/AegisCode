@@ -1,6 +1,33 @@
 import React from "react";
 
-function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadata = null }) {
+function ProjectDashboard({
+  projectName,
+  analysisResults,
+  onOpenFile,
+  gitMetadata = null,
+  onRunProjectAiAnalysis,
+  projectAiLoading,
+  staticLoading,
+  lastOpenedFileId = null,
+  lastOpenedFileName = ""
+}) {
+  if (staticLoading && !analysisResults) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-955 text-slate-450 select-none py-20">
+        <div className="text-center space-y-4">
+          <div className="relative w-12 h-12 mx-auto">
+            <div className="absolute inset-0 rounded-full border-4 border-blue-500/20"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 animate-spin"></div>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold text-slate-200">Running Static AST Analysis...</h3>
+            <p className="text-sm text-slate-500">Compiling Java AST nodes and calculating codebase complexity.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!analysisResults) {
     return (
       <div className="h-full flex items-center justify-center bg-slate-955 text-slate-400 select-none">
@@ -29,15 +56,56 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-slate-950 p-6 text-slate-200 space-y-6">
+    <div className="h-full overflow-y-auto bg-slate-950 p-4 text-slate-200 space-y-4">
       
       {/* 1. Project Overview Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
-        <div>
-          <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">Project Identity</span>
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2 mt-0.5">
-            <span>📁</span> {projectOverview.projectName}
-          </h1>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 glow-card p-4 rounded-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between w-full md:w-auto">
+          <div className="flex items-center gap-3">
+            {lastOpenedFileId && (
+              <button
+                onClick={() => onOpenFile(lastOpenedFileId)}
+                className="text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0 border-none bg-transparent"
+                title={`Back to Editor (${lastOpenedFileName})`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </button>
+            )}
+            <div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Project Identity</span>
+              <h1 className="text-xl font-extrabold text-slate-100 flex items-center gap-2 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                <span className="leading-tight">{projectOverview.projectName}</span>
+              </h1>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onRunProjectAiAnalysis(0)}
+              disabled={projectAiLoading}
+              className="text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-bold py-2 px-3.5 rounded-lg transition-all flex items-center gap-1.5 shadow-md border border-blue-500/20 cursor-pointer"
+            >
+              {projectAiLoading ? (
+                <>
+                  <span className="animate-spin block w-3 h-3 border-2 border-t-white border-white/20 rounded-full"></span>
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <span>🤖</span> Analyze Project
+                </>
+              )}
+            </button>
+            {staticLoading && (
+              <span className="text-[10px] bg-slate-800 text-slate-400 font-medium px-2 py-1.5 rounded-lg flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Re-evaluating AST...
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap gap-4 text-xs text-slate-400">
           <div className="bg-slate-950/40 border border-slate-800/80 px-3.5 py-2 rounded-lg">
@@ -59,10 +127,12 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
 
       {/* GitHub Repository Metadata Card */}
       {gitMetadata && (
-        <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-xl space-y-4">
+        <div className="glow-card p-5 rounded-xl space-y-4">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🐙</span>
+              <svg className="w-8 h-8 fill-current text-slate-200" viewBox="0 0 16 16">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+              </svg>
               <div>
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block font-mono">GitHub Repository Source</span>
                 <a
@@ -126,7 +196,7 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         
         {/* LOC Card */}
-        <div className="bg-slate-900 border border-slate-800/80 p-4 rounded-xl flex flex-col justify-between">
+        <div className="glow-card p-4 rounded-xl flex flex-col justify-between">
           <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Lines of Code</span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-bold text-white">{projectOverview.loc}</span>
@@ -139,8 +209,8 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
         </div>
 
         {/* Complexity Card */}
-        <div className="bg-slate-900 border border-slate-800/80 p-4 rounded-xl flex flex-col justify-between">
-          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Complexity</span>
+        <div className="glow-card p-4 rounded-xl flex flex-col justify-between">
+          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Complexity (Cyclomatic)</span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-bold text-white">{complexityMetrics.score}</span>
             <span className={`text-xs px-1.5 py-0.5 rounded font-bold uppercase ${
@@ -152,28 +222,32 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
             }`}>{complexityMetrics.rating}</span>
           </div>
           <div className="text-[10px] text-slate-500 border-t border-slate-800/60 pt-2 mt-2">
-            Dynamic execution pathways
+            AST decision points detected
           </div>
         </div>
 
         {/* Code Quality Issues Card */}
-        <div className="bg-slate-900 border border-slate-800/80 p-4 rounded-xl flex flex-col justify-between">
+        <div className="glow-card p-4 rounded-xl flex flex-col justify-between">
           <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Quality Issues</span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold text-white">{qualityMetrics.issues.length}</span>
-            <span className="text-[10px] text-slate-500">smells detected</span>
+            <span className="text-2xl font-bold text-white">
+              {qualityMetrics.issues.length + 
+               (qualityMetrics.unusedImports ? qualityMetrics.unusedImports.length : 0) +
+               (qualityMetrics.duplicateMethods ? qualityMetrics.duplicateMethods.length : 0)}
+            </span>
+            <span className="text-[10px] text-slate-500">issues detected</span>
           </div>
           <div className="text-[10px] text-slate-500 flex justify-between border-t border-slate-800/60 pt-2 mt-2">
             <span>TODOs: {qualityMetrics.todos}</span>
-            <span>FIXMEs: {qualityMetrics.fixmes}</span>
+            <span>Dupes: {qualityMetrics.duplicateMethods ? qualityMetrics.duplicateMethods.length : 0}</span>
           </div>
         </div>
 
         {/* Security Warnings Card */}
-        <div className={`border p-4 rounded-xl flex flex-col justify-between ${
+        <div className={`rounded-xl flex flex-col justify-between p-4 ${
           securityWarnings.length > 0 
-            ? "bg-red-950/20 border-red-900/40 text-red-200"
-            : "bg-slate-900 border-slate-800/80"
+            ? "bg-red-950/20 border border-red-900/40 text-red-250"
+            : "glow-card"
         }`}>
           <span className="text-xs font-bold uppercase tracking-wider">Security Alerts</span>
           <div className="flex items-baseline gap-2 mt-2">
@@ -191,9 +265,9 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
 
         {/* 3. Detailed Java Metrics Sub-Panel */}
         {javaMetrics && javaMetrics.classes > 0 && (
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl lg:col-span-1 space-y-4">
+          <div className="glow-card p-5 rounded-xl lg:col-span-1 space-y-4">
             <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest border-b border-slate-800 pb-2">
-              Java Specific Metrics
+              Java Specific Metrics (AST)
             </h3>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/40">
@@ -240,7 +314,7 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
         )}
 
         {/* 4. Complexity Branching breakdown */}
-        <div className={`bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-4 ${javaMetrics && javaMetrics.classes > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}>
+        <div className={`glow-card p-5 rounded-xl space-y-4 ${javaMetrics && javaMetrics.classes > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}>
           <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest border-b border-slate-800 pb-2">
             Logic & Complexity Breakdown
           </h3>
@@ -282,7 +356,7 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
               <span className="text-sm font-bold text-slate-300">{complexityMetrics.ternaries}</span>
             </div>
             <div className="bg-slate-950/40 p-2 rounded-lg border border-blue-500/20">
-              <span className="text-blue-400 block font-semibold">Total Paths</span>
+              <span className="text-blue-400 block font-semibold">Complexity Index</span>
               <span className="text-sm font-black text-white">{complexityMetrics.score}</span>
             </div>
           </div>
@@ -292,7 +366,7 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
 
       {/* 5. Security Warnings Details */}
       {securityWarnings.length > 0 && (
-        <div className="bg-slate-900 border border-red-950/80 p-5 rounded-xl space-y-3">
+        <div className="glow-card p-5 rounded-xl space-y-3">
           <h3 className="text-sm font-bold text-red-400 uppercase tracking-widest border-b border-red-950 pb-2 flex items-center gap-1.5">
             <span>⚠️</span> Security Alerts Detail
           </h3>
@@ -330,9 +404,9 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
 
       {/* 6. Code Quality Smells Detail */}
       {qualityMetrics.issues.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3">
+        <div className="glow-card p-5 rounded-xl space-y-3">
           <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest border-b border-slate-800 pb-2">
-            Static Quality Smells Detail
+            Code Improvement Suggestions
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {qualityMetrics.issues.map((issue, index) => (
@@ -363,8 +437,72 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
         </div>
       )}
 
+      {/* AST Java Code Smells Card */}
+      {((qualityMetrics.unusedImports && qualityMetrics.unusedImports.length > 0) ||
+        (qualityMetrics.duplicateMethods && qualityMetrics.duplicateMethods.length > 0) ||
+        (qualityMetrics.largeClasses && qualityMetrics.largeClasses.length > 0) ||
+        (qualityMetrics.longMethods && qualityMetrics.longMethods.length > 0)) && (
+        <div className="glow-card p-5 rounded-xl space-y-4">
+          <h3 className="text-sm font-bold text-slate-200 uppercase tracking-widest border-b border-slate-800 pb-2">
+            ⚠️ AST Diagnostics & Warnings
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* Unused Imports */}
+            {qualityMetrics.unusedImports && qualityMetrics.unusedImports.length > 0 && (
+              <div className="bg-slate-950/40 border border-slate-800/80 p-4 rounded-lg space-y-2">
+                <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider block">Unused Imports ({qualityMetrics.unusedImports.length})</span>
+                <ul className="list-disc pl-4 space-y-1 text-slate-400 max-h-[150px] overflow-y-auto">
+                  {qualityMetrics.unusedImports.map((imp, idx) => (
+                    <li key={idx} className="font-mono text-[10px] truncate" title={imp}>{imp}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {/* Duplicate Methods */}
+            {qualityMetrics.duplicateMethods && qualityMetrics.duplicateMethods.length > 0 && (
+              <div className="bg-slate-950/40 border border-slate-800/80 p-4 rounded-lg space-y-2">
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Duplicate Methods ({qualityMetrics.duplicateMethods.length})</span>
+                <ul className="list-disc pl-4 space-y-1 text-slate-400 max-h-[150px] overflow-y-auto">
+                  {qualityMetrics.duplicateMethods.map((dup, idx) => (
+                    <li key={idx} className="text-[10px]">{dup}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {/* Large Classes */}
+            {qualityMetrics.largeClasses && qualityMetrics.largeClasses.length > 0 && (
+              <div className="bg-slate-950/40 border border-slate-800/80 p-4 rounded-lg space-y-2">
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Large Classes (&gt;300 LOC)</span>
+                <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
+                  {qualityMetrics.largeClasses.map((cls, idx) => (
+                    <div key={idx} className="flex justify-between font-mono text-[10px] text-slate-400">
+                      <span className="truncate" title={cls.path}>{cls.name}</span>
+                      <span className="text-slate-500 font-bold shrink-0">{cls.loc} lines</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Long Methods */}
+            {qualityMetrics.longMethods && qualityMetrics.longMethods.length > 0 && (
+              <div className="bg-slate-950/40 border border-slate-800/80 p-4 rounded-lg space-y-2">
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Long Methods (&gt;50 LOC)</span>
+                <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
+                  {qualityMetrics.longMethods.map((met, idx) => (
+                    <div key={idx} className="flex justify-between font-mono text-[10px] text-slate-400">
+                      <span className="truncate" title={met.path}>{met.className}.{met.name}()</span>
+                      <span className="text-slate-500 font-bold shrink-0">{met.loc} lines</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 7. File Insights Table */}
-      <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3">
+      <div className="glow-card p-5 rounded-xl space-y-3">
         <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest border-b border-slate-800 pb-2">
           File Diagnostics & Insights
         </h3>
@@ -438,6 +576,52 @@ function ProjectDashboard({ projectName, analysisResults, onOpenFile, gitMetadat
           </table>
         </div>
       </div>
+
+      {/* 8. Dependency Coupling Graph */}
+      {analysisResults.dependencyNodes && analysisResults.dependencyNodes.length > 0 && (
+        <div className="glow-card p-5 rounded-xl space-y-4">
+          <h3 className="text-sm font-bold text-slate-200 uppercase tracking-widest border-b border-slate-800 pb-2">
+            🔗 Class Coupling & Dependency Graph
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Coupling Details</span>
+              {analysisResults.dependencyEdges && analysisResults.dependencyEdges.length > 0 ? (
+                <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-800/60 pr-2">
+                  {analysisResults.dependencyEdges.map((edge, index) => (
+                    <div key={index} className="py-2 flex items-center justify-between text-xs">
+                      <span className="font-mono text-blue-400 bg-blue-950/40 px-2 py-0.5 rounded border border-blue-900/30">{edge.source}</span>
+                      <span className="text-slate-500 font-mono text-[10px]">references ➔</span>
+                      <span className="font-mono text-purple-400 bg-purple-950/40 px-2 py-0.5 rounded border border-purple-900/30">{edge.target}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 italic">No class couplings found in codebase.</p>
+              )}
+            </div>
+            
+            <div className="bg-slate-955/40 border border-slate-800/80 p-4 rounded-xl flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Coupling Insights</span>
+                <div className="space-y-3.5 text-xs text-slate-400">
+                  <div className="flex justify-between">
+                    <span>Analyzed Classes:</span>
+                    <span className="font-bold text-slate-200">{analysisResults.dependencyNodes.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Active Couplings:</span>
+                    <span className="font-bold text-slate-200">{analysisResults.dependencyEdges ? analysisResults.dependencyEdges.length : 0}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-relaxed border-t border-slate-800/60 pt-3">
+                    Class coupling metrics represent references mapped from AST analysis. High coupling indexes indicate tightly coupled architectures that may benefit from dependency inversion.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -1,6 +1,12 @@
 import Editor from "@monaco-editor/react";
 
-function CodeEditor({ language, code, setCode }) {
+function CodeEditor({ language, code, setCode, editorRef }) {
+  const handleEditorDidMount = (editor, monaco) => {
+    if (editorRef) {
+      editorRef.current = editor;
+    }
+  };
+
   return (
     <Editor
       height="500px"
@@ -8,6 +14,7 @@ function CodeEditor({ language, code, setCode }) {
       theme="vs-dark"
       value={code}
       onChange={(value) => setCode(value || "")}
+      onMount={handleEditorDidMount}
       options={{
         minimap: {
           enabled: false,

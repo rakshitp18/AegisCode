@@ -1,1 +1,54 @@
 @import "tailwindcss";
+
+@theme {
+  --color-slate-955: #09090b; /* Deep zinc-charcoal */
+  --color-slate-950: #09090b; /* Main background */
+  --color-slate-900: #141417; /* Card/Panel bg */
+  --color-slate-850: #18181b; /* Mid-tone zinc */
+  --color-slate-800: #202024; /* Clean subtle border line */
+  --color-slate-750: #202024;
+  --color-slate-700: #a1a1aa; /* Text secondary zinc-400 */
+  --color-slate-655: #3f3f46;
+  --color-slate-600: #3f3f46;
+  
+  --color-blue-955: #0b0b14;
+  --color-blue-950: #0d0d1a;
+  --color-blue-900: #1e1b4b; /* Indigo-950 */
+  --color-blue-800: #312e81; /* Indigo-900 */
+  --color-blue-700: #4338ca; /* Indigo-700 */
+  --color-blue-600: #4f46e5; /* Indigo-600 */
+  --color-blue-500: #6366f1; /* Indigo-500 */
+  --color-blue-450: #818cf8; /* Indigo-400 */
+  --color-blue-400: #a5b4fc; /* Indigo-300 */
+}
+
+/* Custom premium dark scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d1117; /* GitHub main bg */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #30363d; /* GitHub border */
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8b949e; /* GitHub scroll-hover */
+}
+
+/* Dynamic design smooth micro-transitions */
+button, a {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glassmorphic border glow effects */
+.glow-card {
+  position: relative;
+  background: #161b22; /* GitHub Dark card bg */
+  border: 1px solid #30363d; /* GitHub Dark border */
+}
