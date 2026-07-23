@@ -4,6 +4,7 @@ import com.aegiscode.backend.dto.*;
 import com.aegiscode.backend.service.AnalyzerService;
 import com.aegiscode.backend.service.StaticAnalysisService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
@@ -27,9 +28,12 @@ public class AnalysisController {
         return Collections.singletonMap("message", "Welcome to AegisCode Backend!");
     }
 
+    /**
+     * Analyze a code file and persist the result to the DB when projectId is provided.
+     */
     @PostMapping("/analyze")
-    public AnalysisResponse analyze(@RequestBody CodeRequest request) {
-        return analyzerService.analyzeCode(request.getLanguage(), request.getCode());
+    public AnalysisResponse analyze(@jakarta.validation.Valid @RequestBody CodeRequest request, Authentication authentication) {
+        return analyzerService.analyzeAndPersist(request, authentication);
     }
 
     @PostMapping("/analyze-project")

@@ -1,6 +1,6 @@
 import api from "./api";
 
-function summarizeContent(content, language) {
+function summarizeContent(content) {
   if (!content) return "[Empty File]";
   const lines = content.split(/\r?\n/);
   
@@ -78,7 +78,7 @@ export async function analyzeProjectRequest(projectName, files, startOffset = 0)
   const optimizedFiles = files.map(file => ({
     path: file.path || file.name,
     language: file.language || "text",
-    content: summarizeContent(file.content || "", file.language)
+    content: summarizeContent(file.content || "")
   }));
 
   const response = await api.post("/analyze-project", {

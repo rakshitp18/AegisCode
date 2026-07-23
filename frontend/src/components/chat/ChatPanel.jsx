@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import useChat from "../../hooks/useChat";
 
 export default function ChatPanel({ projectName, currentFile, files, analysisResults }) {
@@ -12,7 +12,7 @@ export default function ChatPanel({ projectName, currentFile, files, analysisRes
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || loading) return;
     
     const projectMetrics = analysisResults?.projectOverview || null;
@@ -24,7 +24,7 @@ export default function ChatPanel({ projectName, currentFile, files, analysisRes
       longMethodsCount: analysisResults.qualityMetrics?.longMethods?.length
     } : null;
 
-    sendMessage(
+    const success = await sendMessage(
       input,
       projectName,
       currentFile,
@@ -32,7 +32,9 @@ export default function ChatPanel({ projectName, currentFile, files, analysisRes
       projectMetrics,
       astData
     );
-    setInput("");
+    if (success) {
+      setInput("");
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -42,7 +44,7 @@ export default function ChatPanel({ projectName, currentFile, files, analysisRes
     }
   };
 
-  const handleSuggestionClick = (promptText) => {
+  const handleSuggestionClick = async (promptText) => {
     if (loading) return;
     
     if (promptText === "Explain this class" && !currentFile) {
@@ -64,7 +66,7 @@ export default function ChatPanel({ projectName, currentFile, files, analysisRes
       longMethodsCount: analysisResults.qualityMetrics?.longMethods?.length
     } : null;
 
-    sendMessage(
+    await sendMessage(
       finalPrompt,
       projectName,
       currentFile,
@@ -197,7 +199,7 @@ export default function ChatPanel({ projectName, currentFile, files, analysisRes
                     disabled={s.requiresFile && !currentFile}
                     className={`py-2.5 px-3 rounded-xl border text-left text-xs transition-all cursor-pointer truncate font-medium font-sans ${
                       s.requiresFile && !currentFile
-                        ? "bg-slate-950/10 border-slate-900 text-slate-655 cursor-not-allowed"
+                        ? "bg-slate-955/10 border-slate-900 text-slate-600 cursor-not-allowed"
                         : "bg-slate-900/30 border-slate-800/80 hover:border-slate-700 hover:bg-slate-800/40 text-slate-350 hover:text-white shadow-sm"
                     }`}
                   >
@@ -274,7 +276,7 @@ export default function ChatPanel({ projectName, currentFile, files, analysisRes
               disabled={loading || (s.requiresFile && !currentFile)}
               className={`text-[9px] font-bold uppercase tracking-wider py-1.5 px-3 rounded-full border shrink-0 transition-all cursor-pointer font-sans ${
                 s.requiresFile && !currentFile
-                  ? "bg-transparent border-slate-900 text-slate-655 cursor-not-allowed"
+                  ? "bg-transparent border-slate-900 text-slate-600 cursor-not-allowed"
                   : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-350 hover:text-white"
               }`}
             >

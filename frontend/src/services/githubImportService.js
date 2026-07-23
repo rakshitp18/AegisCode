@@ -58,87 +58,87 @@ export function parseGitHubUrl(url) {
 }
 
 /**
- * Direct Zipball Download Fallback
- * Downloads the repository archive directly via codeload.github.com,
- * completely bypassing api.github.com REST API rate limits!
+ * CORS-Compliant Client-Side Fallback via GitHub REST API + raw.githubusercontent.com
+ * Bypasses CORS blocks since api.github.com and raw.githubusercontent.com allow Access-Control-Allow-Origin: *
  */
 export async function importGitHubRepositoryViaZip(owner, repo, branch = null) {
   const branchesToTry = [branch, "main", "master"].filter(Boolean);
-  let response = null;
+  let treeData = null;
   let activeBranch = "main";
 
   for (const b of branchesToTry) {
-    const zipUrl = `https://codeload.github.com/${owner}/${repo}/zip/refs/heads/${b}`;
+    const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${b}?recursive=1`;
     try {
-      const res = await fetch(zipUrl);
+      const res = await fetch(treeUrl);
       if (res.ok) {
-        response = res;
+        treeData = await res.json();
         activeBranch = b;
         break;
       }
     } catch (e) {
-      console.warn(`Failed fetching zip branch ${b}`, e);
+      console.warn(`Failed fetching tree for branch ${b}`, e);
     }
   }
 
-  if (!response) {
-    throw new Error("Unable to download repository archive from GitHub. Please verify that the repository is public and exists.");
+  if (!treeData || !treeData.tree) {
+    throw new Error("Unable to fetch repository metadata from GitHub API. Please check your internet connection.");
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  const zip = await JSZip.loadAsync(arrayBuffer);
-
-  const validFiles = [];
-  const rootPrefix = `${repo}-${activeBranch}/`;
-
-  for (const [relativePath, fileZipObj] of Object.entries(zip.files)) {
-    if (fileZipObj.dir) continue;
-
-    let cleanPath = relativePath;
-    if (cleanPath.startsWith(rootPrefix)) {
-      cleanPath = cleanPath.substring(rootPrefix.length);
-    } else {
-      const firstSlash = cleanPath.indexOf("/");
-      if (firstSlash !== -1) {
-        cleanPath = cleanPath.substring(firstSlash + 1);
-      }
-    }
-
-    if (isIgnored(cleanPath)) continue;
-
-    const parts = cleanPath.split("/");
+  // Filter tree nodes for supported extensions
+  const filesToFetch = treeData.tree.filter(node => {
+    if (node.type !== "blob") return false;
+    const parts = node.path.split("/");
     const filename = parts[parts.length - 1];
+    if (isIgnored(node.path)) return false;
     const ext = getExtension(filename);
-    if (!SUPPORTED_EXTENSIONS.has(ext)) continue;
+    return SUPPORTED_EXTENSIONS.has(ext);
+  }).slice(0, 100); // Limit to 100 files
 
-    const content = await fileZipObj.async("string");
-
-    validFiles.push({
-      id: `github-zip-${validFiles.length}-${Date.now()}`,
-      name: filename,
-      path: cleanPath,
-      language: mapExtensionToLanguage(ext),
-      content
-    });
-
-    if (validFiles.length >= 100) break; // Limit to 100 files
+  if (filesToFetch.length === 0) {
+    throw new Error("No supported source code files found in the repository.");
   }
 
-  if (validFiles.length === 0) {
-    throw new Error("No supported source code files found in the repository archive.");
+  // Download files in parallel batches (10 at a time)
+  const loadedFiles = [];
+  const batchSize = 10;
+  for (let i = 0; i < filesToFetch.length; i += batchSize) {
+    const batch = filesToFetch.slice(i, i + batchSize);
+    const promises = batch.map(async (node) => {
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${activeBranch}/${node.path}`;
+      try {
+        const res = await fetch(rawUrl);
+        if (res.ok) {
+          const content = await res.text();
+          const parts = node.path.split("/");
+          const filename = parts[parts.length - 1];
+          const ext = getExtension(filename);
+          loadedFiles.push({
+            id: `github-api-${loadedFiles.length}-${Date.now()}`,
+            name: filename,
+            path: node.path,
+            language: mapExtensionToLanguage(ext),
+            content
+          });
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch file ${node.path}`, err);
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  if (loadedFiles.length === 0) {
+    throw new Error("Failed to fetch repository file contents from GitHub CDN.");
   }
 
   return {
     projectName: repo,
-    files: validFiles,
+    files: loadedFiles,
     metadata: {
       owner,
       repo,
       branch: activeBranch,
-      stars: 0,
-      languages: [],
-      url: `https://github.com/${owner}/${repo}`,
-      truncated: 0
+      url: `https://github.com/${owner}/${repo}`
     }
   };
 }
@@ -149,7 +149,6 @@ export async function importGitHubRepository(url) {
     throw new Error("Invalid GitHub repository URL. Please enter a valid URL in the format: https://github.com/owner/repository");
   }
 
-  // Delegate to backend proxy endpoint (100% immune to browser CORS & REST API rate limits)
   try {
     const res = await fetch("http://localhost:8000/github-import", {
       method: "POST",

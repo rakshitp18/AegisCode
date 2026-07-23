@@ -2,13 +2,21 @@ package com.aegiscode.backend.service;
 
 import com.aegiscode.backend.dto.AnalysisResponse;
 import com.aegiscode.backend.dto.CodeMetrics;
+import com.aegiscode.backend.dto.CodeRequest;
 import com.aegiscode.backend.dto.ProjectAnalysisRequest;
 import com.aegiscode.backend.dto.ProjectAnalysisResponse;
 import com.aegiscode.backend.dto.ProjectFile;
 import com.aegiscode.backend.dto.ChatRequest;
 import com.aegiscode.backend.dto.RefactorRequest;
 import com.aegiscode.backend.dto.RefactorResponse;
+import com.aegiscode.backend.entity.Analysis;
+import com.aegiscode.backend.entity.Project;
+import com.aegiscode.backend.entity.User;
+import com.aegiscode.backend.repository.AnalysisRepository;
+import com.aegiscode.backend.repository.ProjectRepository;
+import com.aegiscode.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,11 +24,21 @@ public class AnalyzerService {
 
     private final AiService aiService;
     private final StaticAnalysisService staticAnalysisService;
+    private final AnalysisRepository analysisRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public AnalyzerService(AiService aiService, StaticAnalysisService staticAnalysisService) {
+    public AnalyzerService(AiService aiService,
+                           StaticAnalysisService staticAnalysisService,
+                           AnalysisRepository analysisRepository,
+                           ProjectRepository projectRepository,
+                           UserRepository userRepository) {
         this.aiService = aiService;
         this.staticAnalysisService = staticAnalysisService;
+        this.analysisRepository = analysisRepository;
+        this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
     }
 
     public AnalysisResponse analyzeCode(String language, String code) {
@@ -31,6 +49,47 @@ public class AnalyzerService {
         AnalysisResponse response = aiService.analyzeWithAi(language, trimmedCode);
         CodeMetrics metrics = staticAnalysisService.analyzeStatic(language, code);
         response.setMetrics(metrics);
+        return response;
+    }
+
+    /**
+     * Analyze code and persist the result to the database if projectId and auth are provided.
+     */
+    public AnalysisResponse analyzeAndPersist(CodeRequest request, Authentication auth) {
+        AnalysisResponse response = analyzeCode(request.getLanguage(), request.getCode());
+
+        // Persist only when we have a project context and an authenticated user
+        if (auth != null && request.getProjectId() != null) {
+            try {
+                String email = auth.getName();
+                User user = userRepository.findByEmail(email).orElse(null);
+                Project project = projectRepository.findById(request.getProjectId()).orElse(null);
+
+                if (user != null && project != null) {
+                    Analysis analysis = new Analysis();
+                    analysis.setUser(user);
+                    analysis.setProject(project);
+                    analysis.setFileName(request.getFileName() != null ? request.getFileName() : "unknown");
+                    analysis.setLanguage(request.getLanguage());
+                    analysis.setSummary(response.getSummary());
+                    analysis.setBugs(response.getBugs());
+                    analysis.setSuggestions(response.getSuggestions());
+                    analysis.setComplexity(response.getComplexity());
+                    analysis.setTests(response.getTests());
+                    analysis.setMetrics(response.getMetrics());
+                    analysis.setAnalysisType("file");
+                    Analysis saved = analysisRepository.save(analysis);
+                    response.setId(saved.getId());
+                    response.setFileName(saved.getFileName());
+                    response.setLanguage(saved.getLanguage());
+                    response.setCreatedAt(saved.getCreatedAt());
+                }
+            } catch (Exception e) {
+                // Non-fatal: log and continue — analysis result is still returned
+                System.err.println("[AnalyzerService] Failed to persist analysis: " + e.getMessage());
+            }
+        }
+
         return response;
     }
 
@@ -144,124 +203,108 @@ public class AnalyzerService {
             throw new IllegalArgumentException("GitHub repository URL is required.");
         }
 
-        String cleanUrl = url.trim().replaceAll("\\.git$", "");
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("github\\.com/([^/]+)/([^/]+)(?:/tree/([^/]+))?");
-        java.util.regex.Matcher matcher = pattern.matcher(cleanUrl);
+        String cleanUrl = url.trim();
 
-        if (!matcher.find()) {
-            throw new IllegalArgumentException("Invalid GitHub URL format. Please enter a URL like: https://github.com/owner/repository");
+        // 1. Create a unique temporary directory under the workspace
+        java.nio.file.Path tempDir;
+        try {
+            java.nio.file.Path localTempBase = java.nio.file.Paths.get(".temp-clones");
+            java.nio.file.Files.createDirectories(localTempBase);
+            tempDir = java.nio.file.Files.createTempDirectory(localTempBase, "aegiscode-clone-");
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to create temporary folder for cloning: " + e.getMessage());
         }
 
-        String owner = matcher.group(1);
-        String repo = matcher.group(2);
-        String requestedBranch = matcher.group(3);
-
-        String[] branchesToTry = (requestedBranch != null) 
-            ? new String[]{requestedBranch, "main", "master"} 
-            : new String[]{"main", "master"};
-
-        byte[] zipBytes = null;
-        String activeBranch = "main";
-
-        for (String branch : branchesToTry) {
-            String zipUrl = "https://codeload.github.com/" + owner + "/" + repo + "/zip/refs/heads/" + branch;
-            try {
-                java.net.URL targetUrl = new java.net.URL(zipUrl);
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) targetUrl.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(8000);
-                conn.setReadTimeout(15000);
-                conn.setInstanceFollowRedirects(true);
-                // Set User-Agent to bypass GitHub's block on generic Java connections
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-
-                if (conn.getResponseCode() == 200) {
-                    try (java.io.InputStream in = conn.getInputStream();
-                         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
-                        byte[] buffer = new byte[8192];
-                        int bytesRead;
-                        while ((bytesRead = in.read(buffer)) != -1) {
-                            out.write(buffer, 0, bytesRead);
-                        }
-                        zipBytes = out.toByteArray();
-                        activeBranch = branch;
-                        break;
-                    }
+        // 2. Execute native git clone --depth 1 <url> <tempDir>
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                "git", "clone", "--depth", "1", cleanUrl, tempDir.toAbsolutePath().toString()
+            );
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            
+            // Read output logs
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("[git clone] " + line);
                 }
-            } catch (Exception e) {
-                // Continue to next branch
             }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                deleteDirectoryRecursively(tempDir.toFile());
+                throw new RuntimeException("git clone exited with code " + exitCode + ". Make sure the repository is valid and public.");
+            }
+        } catch (Exception e) {
+            deleteDirectoryRecursively(tempDir.toFile());
+            throw new RuntimeException("Failed to clone GitHub repository: " + e.getMessage());
         }
 
-        if (zipBytes == null || zipBytes.length == 0) {
-            throw new RuntimeException("Unable to download repository archive from GitHub. Please verify that the repository is public and exists.");
-        }
-
+        // 3. Read files recursively from tempDir
         java.util.List<java.util.Map<String, String>> importedFiles = new java.util.ArrayList<>();
         java.util.Set<String> supportedExts = java.util.Set.of(
             "java", "js", "ts", "jsx", "tsx", "py", "cpp", "c", "cs", "go",
             "kt", "php", "html", "css", "json", "xml", "yml", "yaml", "md"
         );
 
-        String rootPrefix = repo + "-" + activeBranch + "/";
+        try {
+            java.nio.file.Files.walk(tempDir).forEach(filePath -> {
+                if (java.nio.file.Files.isDirectory(filePath)) return;
 
-        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(zipBytes))) {
-            java.util.zip.ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
-                if (entry.isDirectory()) continue;
-
-                String name = entry.getName();
-                String cleanPath = name;
-                if (cleanPath.startsWith(rootPrefix)) {
-                    cleanPath = cleanPath.substring(rootPrefix.length());
-                } else {
-                    int slashIdx = cleanPath.indexOf("/");
-                    if (slashIdx != -1) {
-                        cleanPath = cleanPath.substring(slashIdx + 1);
-                    }
-                }
+                String relativePath = tempDir.relativize(filePath).toString().replace('\\', '/');
 
                 boolean isIgnored = false;
-                for (String seg : cleanPath.split("/")) {
-                    if (seg.startsWith(".") || seg.equals("node_modules") || seg.equals("target") || seg.equals("build") || seg.equals("dist")) {
+                for (String seg : relativePath.split("/")) {
+                    if (seg.startsWith(".") || seg.equals("node_modules") || seg.equals("target") || seg.equals("build") || seg.equals("dist") || seg.equals("bin") || seg.equals("out")) {
                         isIgnored = true;
                         break;
                     }
                 }
-                if (isIgnored) continue;
+                if (isIgnored) return;
 
-                String filename = cleanPath.substring(cleanPath.lastIndexOf('/') + 1);
+                String filename = filePath.getFileName().toString();
                 int dotIdx = filename.lastIndexOf('.');
                 String ext = (dotIdx != -1) ? filename.substring(dotIdx + 1).toLowerCase() : "";
 
-                if (!supportedExts.contains(ext)) continue;
+                if (!supportedExts.contains(ext)) return;
 
-                java.io.ByteArrayOutputStream fileOut = new java.io.ByteArrayOutputStream();
-                byte[] buf = new byte[4096];
-                int n;
-                while ((n = zis.read(buf)) != -1) {
-                    fileOut.write(buf, 0, n);
+                try {
+                    String content = java.nio.file.Files.readString(filePath, java.nio.charset.StandardCharsets.UTF_8);
+                    
+                    java.util.Map<String, String> fileObj = new java.util.HashMap<>();
+                    fileObj.put("id", "github-backend-" + importedFiles.size() + "-" + System.currentTimeMillis());
+                    fileObj.put("name", filename);
+                    fileObj.put("path", relativePath);
+                    fileObj.put("language", mapExtToLang(ext));
+                    fileObj.put("content", content);
+
+                    importedFiles.add(fileObj);
+                } catch (java.io.IOException e) {
+                    System.err.println("Failed reading cloned file: " + relativePath);
                 }
-
-                String content = fileOut.toString(java.nio.charset.StandardCharsets.UTF_8);
-
-                java.util.Map<String, String> fileObj = new java.util.HashMap<>();
-                fileObj.put("id", "github-backend-" + importedFiles.size() + "-" + System.currentTimeMillis());
-                fileObj.put("name", filename);
-                fileObj.put("path", cleanPath);
-                fileObj.put("language", mapExtToLang(ext));
-                fileObj.put("content", content);
-
-                importedFiles.add(fileObj);
-
-                if (importedFiles.size() >= 100) break;
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed parsing ZIP archive from GitHub: " + e.getMessage());
+            });
+        } catch (java.io.IOException e) {
+            deleteDirectoryRecursively(tempDir.toFile());
+            throw new RuntimeException("Failed walking cloned directory tree: " + e.getMessage());
         }
 
+        // 4. Clean up temp folder
+        deleteDirectoryRecursively(tempDir.toFile());
+
         if (importedFiles.isEmpty()) {
-            throw new RuntimeException("No supported source code files found in the public repository.");
+            throw new RuntimeException("No supported source code files found in the repository.");
+        }
+
+        // Parse owner and repository name for metadata
+        String owner = "owner";
+        String repo = "repository";
+        String cleanUrlNoGit = cleanUrl.replaceAll("\\.git$", "");
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("github\\.com/([^/]+)/([^/]+)");
+        java.util.regex.Matcher matcher = pattern.matcher(cleanUrlNoGit);
+        if (matcher.find()) {
+            owner = matcher.group(1);
+            repo = matcher.group(2);
         }
 
         java.util.Map<String, Object> result = new java.util.HashMap<>();
@@ -271,11 +314,23 @@ public class AnalyzerService {
         java.util.Map<String, Object> metadata = new java.util.HashMap<>();
         metadata.put("owner", owner);
         metadata.put("repo", repo);
-        metadata.put("branch", activeBranch);
-        metadata.put("url", "https://github.com/" + owner + "/" + repo);
+        metadata.put("branch", "main");
+        metadata.put("url", cleanUrlNoGit);
         result.put("metadata", metadata);
 
         return result;
+    }
+
+    private void deleteDirectoryRecursively(java.io.File file) {
+        if (file.isDirectory()) {
+            java.io.File[] files = file.listFiles();
+            if (files != null) {
+                for (java.io.File f : files) {
+                    deleteDirectoryRecursively(f);
+                }
+            }
+        }
+        file.delete();
     }
 
     private String mapExtToLang(String ext) {

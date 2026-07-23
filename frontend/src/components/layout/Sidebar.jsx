@@ -1,6 +1,4 @@
-import { useRef, useState, useEffect } from "react";
-import { importFolder } from "../../services/folderImportService";
-import { importGitHubRepository } from "../../services/githubImportService";
+import { useState, useEffect } from "react";
 import { buildFileTree } from "../../utils/treeBuilder";
 
 // Recursive Component for Tree Nodes
@@ -167,8 +165,11 @@ const HistoryModal = ({ isOpen, onClose, gitMetadata, onLoadAnalysisResult }) =>
       };
       fetchCommits();
     } else {
-      const history = JSON.parse(localStorage.getItem("analysis_history") || "[]");
-      setLocalHistory(history);
+      const timer = setTimeout(() => {
+        const history = JSON.parse(localStorage.getItem("analysis_history") || "[]");
+        setLocalHistory(history);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, gitMetadata]);
 
@@ -272,26 +273,15 @@ function Sidebar({
   onSelectFile,
   onAddNewFile,
   onDeleteFile,
-  onImportProject,
-  setAlertInfo,
-  stats = { totalFiles: 0, totalFolders: 0, languages: [] },
   filterType = "all",
   onSelectFilter,
   analysisResults = null,
   gitMetadata = null,
-  lastOpenedFileId = null,
-  lastOpenedFileName = "",
-  onLoadAnalysisResult
+  onLoadAnalysisResult,
+  isImporting = false
 }) {
-  const fileInputRef = useRef(null);
   const [openFolders, setOpenFolders] = useState({});
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-
-  // GitHub Import Modal State
-  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
-  const [gitHubUrl, setGitHubUrl] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
-  const [importError, setImportError] = useState("");
 
   // Auto-expand all folders when new files are loaded/imported
   useEffect(() => {
@@ -305,62 +295,11 @@ function Sidebar({
         initialOpen[currentPath] = true;
       }
     });
-    setOpenFolders(initialOpen);
+    const timer = setTimeout(() => {
+      setOpenFolders(initialOpen);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [files]);
-
-  const handleOpenFolderClick = () => {
-    const isSupported =
-      typeof HTMLInputElement !== "undefined" &&
-      "webkitdirectory" in HTMLInputElement.prototype;
-
-    if (!isSupported) {
-      setAlertInfo({
-        title: "Browser Unsupported",
-        message: "Your browser does not support folder uploading. Please try using a modern browser like Chrome, Edge, or Firefox."
-      });
-      return;
-    }
-    fileInputRef.current.click();
-  };
-
-  const handleFolderUpload = async (e) => {
-    const rawFiles = e.target.files;
-    if (!rawFiles || rawFiles.length === 0) return;
-
-    try {
-      const result = await importFolder(rawFiles);
-      onImportProject(result.projectName, result.files);
-    } catch (err) {
-      console.error(err);
-      setAlertInfo({
-        title: "Folder Import Failed",
-        message: err.message || "An unexpected error occurred while importing the folder."
-      });
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleGitHubImport = async (e) => {
-    e.preventDefault();
-    if (!gitHubUrl.trim()) return;
-
-    try {
-      setIsImporting(true);
-      setImportError("");
-      const result = await importGitHubRepository(gitHubUrl);
-      onImportProject(result.projectName, result.files, result.metadata);
-      setIsGitHubModalOpen(false);
-      setGitHubUrl("");
-    } catch (err) {
-      console.error(err);
-      setImportError(err.message || "Failed to import GitHub repository.");
-    } finally {
-      setIsImporting(false);
-    }
-  };
 
   const handleToggleFolder = (folderPath) => {
     setOpenFolders((prev) => ({
@@ -515,7 +454,15 @@ function Sidebar({
 
         {/* Dynamic Recursive File Tree */}
         <div className="flex-1 overflow-y-auto space-y-0.5 border-t border-b border-slate-800/80 py-2.5 my-2 min-h-0">
-          {sortedRootKeys.length > 0 ? (
+          {isImporting ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-2 select-none">
+              <svg className="animate-spin h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="text-[10px] text-slate-500 font-medium">Syncing repository...</span>
+            </div>
+          ) : sortedRootKeys.length > 0 ? (
             sortedRootKeys.map((key) => (
               <FileTreeNode
                 key={key}
@@ -560,80 +507,6 @@ function Sidebar({
           <span>⚙</span> Settings
         </div>
       </div>
-
-      {/* GitHub Repository Import Modal Dialog */}
-      {isGitHubModalOpen && (
-        <div className="fixed inset-0 bg-slate-955/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl max-w-sm w-full space-y-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <svg className="w-4 h-4 fill-current text-slate-200" viewBox="0 0 16 16">
-                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-                </svg>
-                Import from GitHub
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Enter the URL of a public repository to download and scan source code files.
-              </p>
-            </div>
-
-            <form onSubmit={handleGitHubImport} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Repository URL
-                </label>
-                <input
-                  type="text"
-                  value={gitHubUrl}
-                  onChange={(e) => setGitHubUrl(e.target.value)}
-                  placeholder="https://github.com/owner/repository"
-                  disabled={isImporting}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 disabled:opacity-50"
-                  required
-                />
-              </div>
-
-              {importError && (
-                <div className="bg-red-950/30 border border-red-900/40 text-red-400 text-xs p-2.5 rounded-lg font-medium">
-                  {importError}
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsGitHubModalOpen(false);
-                    setGitHubUrl("");
-                    setImportError("");
-                  }}
-                  disabled={isImporting}
-                  className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-755 text-slate-300 font-semibold cursor-pointer disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isImporting || !gitHubUrl.trim()}
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {isImporting ? (
-                    <>
-                      <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Importing...
-                    </>
-                  ) : (
-                    "Import"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       <HistoryModal
         isOpen={isHistoryModalOpen}

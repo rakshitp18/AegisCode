@@ -1,7 +1,7 @@
 import Editor from "@monaco-editor/react";
 
 function CodeEditor({ language, code, setCode, editorRef }) {
-  const handleEditorDidMount = (editor, monaco) => {
+  const handleEditorDidMount = (editor) => {
     if (editorRef) {
       editorRef.current = editor;
     }

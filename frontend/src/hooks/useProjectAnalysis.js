@@ -10,6 +10,8 @@ export default function useProjectAnalysis(files, projectName) {
   const cacheRef = useRef({});
 
   useEffect(() => {
+    let active = true;
+
     if (!files || files.length === 0) {
       setAnalysisResults(null);
       return;
@@ -20,12 +22,14 @@ export default function useProjectAnalysis(files, projectName) {
         setStaticLoading(true);
         setStaticError(null);
 
-        // 1. Run local client-side analysis (for non-java files + todos/regex security)
+        // 1. Run local client-side analysis
         const localResults = analyzeProject(files, projectName, cacheRef.current);
+        if (!active) return;
         cacheRef.current = localResults.cache;
 
         // 2. Fetch AST-based analysis from backend
         const backendResults = await analyzeProjectStaticRequest(projectName, files);
+        if (!active) return;
 
         // 3. Merge backend AST-based results into local metrics
         const mergedResults = {
@@ -56,7 +60,6 @@ export default function useProjectAnalysis(files, projectName) {
             score: backendResults.cyclomaticComplexityScore,
             rating: backendResults.complexityRating
           },
-          // Insert backend code smells as quality issues
           qualityMetrics: {
             ...localResults.qualityMetrics,
             unusedImports: backendResults.unusedImports || [],
@@ -64,24 +67,29 @@ export default function useProjectAnalysis(files, projectName) {
             largeClasses: backendResults.largeClasses || [],
             longMethods: backendResults.longMethods || []
           },
-          // Graph data
           dependencyNodes: backendResults.dependencyNodes || [],
           dependencyEdges: backendResults.dependencyEdges || []
         };
 
         setAnalysisResults(mergedResults);
       } catch (err) {
+        if (!active) return;
         console.error("Static AST Analysis failed, falling back to local regex: ", err);
         setStaticError(err.message || "Failed to reach backend static analyzer.");
-        // Fall back to local regex calculations so the UI doesn't break if backend is offline
         const localResults = analyzeProject(files, projectName, cacheRef.current);
         setAnalysisResults(localResults);
       } finally {
-        setStaticLoading(false);
+        if (active) {
+          setStaticLoading(false);
+        }
       }
     };
 
     runAnalysis();
+
+    return () => {
+      active = false;
+    };
   }, [files, projectName]);
 
   return {

@@ -74,3 +74,4 @@ HELP.md
 # --- Project Temp / Output Directories ---
 uploads/
 reports/
+backend/.temp-clones/

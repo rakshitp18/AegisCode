@@ -1,70 +1,169 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useRef } from "react";
 import Features from "../components/Features";
-import { PixelCanvas } from "../components/ui/PixelCanvas";
+import TyndallParticles from "../components/ui/TyndallParticles";
+import { useAuth } from "../contexts/AuthContext";
 
 function Landing() {
   const navigate = useNavigate();
   const featuresRef = useRef(null);
+  const { isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("Home");
+  const [isNavHovered, setIsNavHovered] = useState(false);
+
+  const handleWorkspaceRedirect = () => {
+    if (isAuthenticated()) {
+      navigate("/workspace");
+    } else {
+      navigate("/login");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white font-sans relative overflow-x-hidden selection:bg-white selection:text-black scroll-smooth">
       
-      {/* Dynamic Background Pixel Canvas */}
-      <PixelCanvas 
-        className="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-55"
-        variant="glow"
-        colors={["#3b82f6", "#f1f5f9", "#10b981"]}
-        gap={7}
-        speed={0.022}
-      />
+      {/* Tyndall Dust Particle Background */}
+      <TyndallParticles className="z-0" />
 
       {/* Hero Section Container */}
-      <div className="min-h-screen flex flex-col justify-between relative z-10 w-full">
-        {/* 1. Header Navigation */}
-        <header className="flex items-center justify-between p-6 w-full max-w-7xl mx-auto">
-          <div className="flex items-center gap-10">
-            <div className="flex items-center gap-2 font-bold text-lg tracking-tight select-none">
+      <div className="min-h-screen flex flex-col justify-between relative z-10 w-full pt-12">
+        {/* 1. Header Navigation (Fixed top bar with hover-to-expand center tab) */}
+        <header className="fixed top-0 left-0 right-0 h-12 bg-black border-b border-white/5 z-50">
+          <div className="flex items-center justify-between px-6 h-full w-full max-w-7xl mx-auto relative">
+            
+            {/* Left: Brand Logo */}
+            <div 
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="flex items-center gap-2 font-bold text-sm tracking-tight select-none cursor-pointer"
+            >
               <div className="flex gap-0.5">
-                <div className="w-1.5 h-4 bg-white transform skew-x-[-15deg]"></div>
-                <div className="w-1.5 h-4 bg-white transform skew-x-[-15deg]"></div>
+                <div className="w-1 h-3.5 bg-white transform skew-x-[-15deg]"></div>
+                <div className="w-1 h-3.5 bg-white transform skew-x-[-15deg]"></div>
               </div>
-              AegisCode
+              <span>AegisCode</span>
             </div>
             
-            <nav className="hidden md:flex gap-1.5 bg-[#141414]/60 border border-white/5 p-1 rounded-full backdrop-blur-md">
-              {["Home", "Features", "Docs"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    setActiveTab(tab);
-                    if (tab === "Home") {
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    } else if (tab === "Features") {
-                      featuresRef.current?.scrollIntoView({ behavior: "smooth" });
-                    }
+            {/* Center: Hover-to-Expand Hanging Tab */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-full -translate-y-[1px] z-50">
+              <div
+                onMouseEnter={() => setIsNavHovered(true)}
+                onMouseLeave={() => setIsNavHovered(false)}
+                className="group relative bg-black border-b border-x border-white/10 flex items-center justify-center transition-all duration-500 ease-out px-4 h-11 rounded-b-[22px] cursor-pointer"
+                style={{ width: isNavHovered ? '370px' : '56px' }}
+              >
+                {/* Seamless top connection mask to cover header border-b */}
+                <div className="absolute -top-[2px] left-0 right-0 h-[3px] bg-black z-20" />
+
+                {/* Concave Left Corner */}
+                <div
+                  className="absolute top-0 right-full w-5 h-5 bg-transparent pointer-events-none z-10"
+                  style={{
+                    borderTopRightRadius: '20px',
+                    boxShadow: '5px -5px 0 0 #000000',
                   }}
-                  className={`px-4 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all cursor-pointer ${
-                    activeTab === tab 
-                      ? "bg-white text-black font-semibold" 
-                      : "text-white/60 hover:text-white"
+                />
+                
+                {/* Concave Right Corner */}
+                <div
+                  className="absolute top-0 left-full w-5 h-5 bg-transparent pointer-events-none z-10"
+                  style={{
+                    borderTopLeftRadius: '20px',
+                    boxShadow: '-5px -5px 0 0 #000000',
+                  }}
+                />
+
+                {/* Left Side Links (Slides out to the left) */}
+                <div 
+                  className={`flex gap-6 select-none text-[11px] font-semibold text-white/50 whitespace-nowrap transition-all duration-500 ease-out absolute top-1/2 -translate-y-1/2 ${
+                    isNavHovered 
+                      ? "right-[58%] opacity-100 pointer-events-auto translate-x-0 scale-100" 
+                      : "right-1/2 translate-x-12 opacity-0 pointer-events-none scale-75"
                   }`}
                 >
-                  {tab}
-                </button>
-              ))}
-            </nav>
-          </div>
+                  <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-[11px] font-semibold"
+                  >
+                    Home
+                  </button>
+                  <button
+                    onClick={() => featuresRef.current?.scrollIntoView({ behavior: "smooth" })}
+                    className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-[11px] font-semibold"
+                  >
+                    About
+                  </button>
+                </div>
 
-          <div>
-            <button 
-              onClick={() => navigate("/workspace")}
-              className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-full text-xs font-bold hover:bg-white/90 active:scale-95 transition-all shadow-md cursor-pointer tracking-wider uppercase"
-            >
-              <span>Start Workspace</span>
-              <span className="text-sm font-light">→</span>
-            </button>
+                {/* Center Stylized Shield / Slash Logo */}
+                <div className="z-20 shrink-0 transition-transform duration-700 group-hover:rotate-[360deg] flex items-center justify-center w-8 h-8">
+                  <svg className="w-5.5 h-5.5 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="38" stroke="currentColor" strokeWidth="11" />
+                    <path d="M35 65 L65 35" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
+                    <path d="M48 65 L65 48" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
+                  </svg>
+                </div>
+
+                {/* Right Side Links (Slides out to the right) */}
+                <div 
+                  className={`flex gap-6 select-none text-[11px] font-semibold text-white/50 whitespace-nowrap transition-all duration-500 ease-out absolute top-1/2 -translate-y-1/2 ${
+                    isNavHovered 
+                      ? "left-[58%] opacity-100 pointer-events-auto translate-x-0 scale-100" 
+                      : "left-1/2 -translate-x-12 opacity-0 pointer-events-none scale-75"
+                  }`}
+                >
+                  <button
+                    onClick={() => featuresRef.current?.scrollIntoView({ behavior: "smooth" })}
+                    className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-[11px] font-semibold"
+                  >
+                    Blog
+                  </button>
+                  <button
+                    onClick={handleWorkspaceRedirect}
+                    className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-[11px] font-semibold"
+                  >
+                    Contact
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Auth Controls */}
+            <div className="flex items-center gap-4">
+              {isAuthenticated() ? (
+                <>
+                  <button
+                    onClick={logout}
+                    className="text-xs text-white/60 hover:text-white font-semibold py-1 px-2 transition-colors cursor-pointer"
+                  >
+                    Log out
+                  </button>
+                  <button 
+                    onClick={() => navigate("/workspace")}
+                    className="flex items-center gap-1.5 bg-white text-black px-4 py-1.5 rounded-full text-[10px] font-bold hover:bg-white/90 active:scale-95 transition-all shadow-md cursor-pointer tracking-wider uppercase"
+                  >
+                    <span>Workspace</span>
+                    <span className="text-xs font-light">→</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="text-xs text-white/80 hover:text-white font-semibold py-1 px-2.5 transition-colors cursor-pointer"
+                  >
+                    Log in
+                  </button>
+                  <button 
+                    onClick={handleWorkspaceRedirect}
+                    className="flex items-center gap-1.5 bg-white text-black px-4 py-1.5 rounded-full text-[10px] font-bold hover:bg-white/90 active:scale-95 transition-all shadow-md cursor-pointer tracking-wider uppercase border border-white/10"
+                  >
+                    <span>Start Free</span>
+                    <span className="text-xs font-light">→</span>
+                  </button>
+                </>
+              )}
+            </div>
+
           </div>
         </header>
 
@@ -85,7 +184,7 @@ function Landing() {
 
           <div className="flex gap-4">
             <button 
-              onClick={() => navigate("/workspace")}
+              onClick={handleWorkspaceRedirect}
               className="bg-white text-black text-xs px-6 py-3 rounded-full font-bold hover:bg-white/95 transition-all cursor-pointer tracking-wider uppercase shadow-xl shadow-white/5 hover:scale-105"
             >
               Open Analyzer

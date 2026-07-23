@@ -1,4 +1,4 @@
-import React from "react";
+// ProjectResultsPanel.jsx
 
 function ProjectResultsPanel({ result, loading, error, onRunAnalysis }) {
   if (loading) {
@@ -108,7 +108,7 @@ function ProjectResultsPanel({ result, loading, error, onRunAnalysis }) {
             />
           </svg>
           <div className="absolute flex flex-col items-center justify-center">
-            <span className="text-2xl font-black text-white">{score}</span>
+            <span className={`text-2xl font-black ${scoreColorClass}`}>{score}</span>
             <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold">Health</span>
           </div>
         </div>

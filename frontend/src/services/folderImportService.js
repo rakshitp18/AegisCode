@@ -71,7 +71,7 @@ const readFileContent = async (file) => {
       reader.readAsText(file);
     });
   } catch (err) {
-    throw new Error(`Failed to read file ${file.name}: Permission denied or file unreadable.`);
+    throw new Error(`Failed to read file ${file.name}: Permission denied or file unreadable.`, { cause: err });
   }
 };
 

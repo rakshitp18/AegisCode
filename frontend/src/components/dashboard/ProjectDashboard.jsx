@@ -1,7 +1,8 @@
-import React from "react";
+
+import { useState } from "react";
+import DashboardAnalytics from "./DashboardAnalytics";
 
 function ProjectDashboard({
-  projectName,
   analysisResults,
   onOpenFile,
   gitMetadata = null,
@@ -9,9 +10,12 @@ function ProjectDashboard({
   projectAiLoading,
   staticLoading,
   lastOpenedFileId = null,
-  lastOpenedFileName = ""
+  lastOpenedFileName = "",
+  projectId = null
 }) {
-  if (staticLoading && !analysisResults) {
+  const [activeViewTab, setActiveViewTab] = useState("codebase"); // "codebase" | "analytics"
+
+  if (staticLoading && !analysisResults && activeViewTab === "codebase") {
     return (
       <div className="h-full flex items-center justify-center bg-slate-955 text-slate-450 select-none py-20">
         <div className="text-center space-y-4">
@@ -28,27 +32,6 @@ function ProjectDashboard({
     );
   }
 
-  if (!analysisResults) {
-    return (
-      <div className="h-full flex items-center justify-center bg-slate-955 text-slate-400 select-none">
-        <div className="text-center space-y-2">
-          <span className="text-4xl">📊</span>
-          <h3 className="text-lg font-semibold text-slate-200">No Analysis Available</h3>
-          <p className="text-sm text-slate-500">Upload a project folder or add files to generate metrics.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const {
-    projectOverview,
-    javaMetrics,
-    qualityMetrics,
-    complexityMetrics,
-    securityWarnings,
-    fileInsights
-  } = analysisResults;
-
   // Format timestamp helper
   const formatTime = (ts) => {
     if (!ts) return "-";
@@ -56,10 +39,45 @@ function ProjectDashboard({
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-slate-950 p-4 text-slate-200 space-y-4">
-      
-      {/* 1. Project Overview Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 glow-card p-4 rounded-xl">
+    <div className="h-full overflow-y-auto bg-slate-955 p-4 text-slate-200 space-y-4">
+      {/* View Selector Bar */}
+      <div className="flex bg-slate-900 border border-slate-800/80 p-1 rounded-xl gap-1 max-w-sm shrink-0">
+        <button
+          onClick={() => setActiveViewTab("codebase")}
+          className={`flex-1 text-xs font-bold py-2 px-4 rounded-lg transition-all cursor-pointer ${
+            activeViewTab === "codebase"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-950/20"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+          }`}
+        >
+          📄 Codebase Metrics
+        </button>
+        <button
+          onClick={() => setActiveViewTab("analytics")}
+          className={`flex-1 text-xs font-bold py-2 px-4 rounded-lg transition-all cursor-pointer ${
+            activeViewTab === "analytics"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-950/20"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+          }`}
+        >
+          📈 Analytics & Trends
+        </button>
+      </div>
+
+      {activeViewTab === "analytics" ? (
+        <DashboardAnalytics projectId={projectId} />
+      ) : !analysisResults ? (
+        <div className="flex items-center justify-center text-slate-400 select-none py-24">
+          <div className="text-center space-y-2">
+            <span className="text-4xl">📊</span>
+            <h3 className="text-lg font-semibold text-slate-200">No AST Analysis Available</h3>
+            <p className="text-xs text-slate-500 max-w-xs mx-auto">Upload a project folder or select files to generate codebase metrics.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Main Codebase AST Content */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 glow-card p-4 rounded-xl">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between w-full md:w-auto">
           <div className="flex items-center gap-3">
             {lastOpenedFileId && (
@@ -529,7 +547,6 @@ function ProjectDashboard({
                                 (analysisResults.cache[fileId] ? { name: fileId, path: analysisResults.cache[fileId].result.path } : { name: "File", path: "" });
                 const actualName = analysisResults.cache[fileId]?.result.name || fileObj.name;
                 const actualPath = analysisResults.cache[fileId]?.result.path || fileObj.path;
-                const actualLang = analysisResults.cache[fileId]?.result.language || "";
 
                 return (
                   <tr key={fileId} className="hover:bg-slate-800/20 transition-colors">
@@ -622,7 +639,7 @@ function ProjectDashboard({
           </div>
         </div>
       )}
-
+      </>)}
     </div>
   );
 }

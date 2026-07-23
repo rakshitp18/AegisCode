@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAnalysisContext } from "../contexts/AnalysisContext";
 
 // Common stop words to ignore when performing keyword content search to avoid pulling huge irrelevant files
 const STOP_WORDS = new Set([
@@ -33,6 +34,7 @@ const shouldIgnoreFile = (fileName) => {
 };
 
 export default function useChat() {
+  const { chatWithProject } = useAnalysisContext();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -48,7 +50,7 @@ export default function useChat() {
     // Split into clean words and filter out stop words
     const words = messageText
       .toLowerCase()
-      .split(/[^a-zA-Z0-9_\.]+/)
+      .split(/[^a-zA-Z0-9_.]+/)
       .filter((word) => word.length > 2 && !STOP_WORDS.has(word));
       
     if (words.length === 0) return [];
@@ -103,7 +105,7 @@ export default function useChat() {
   };
 
   const sendMessage = async (messageText, projectName, currentFile, files, projectMetrics, astData) => {
-    if (!messageText.trim()) return;
+    if (!messageText.trim()) return false;
 
     const userMessage = { role: "user", content: messageText };
     setMessages((prev) => [...prev, userMessage]);
@@ -157,21 +159,14 @@ export default function useChat() {
     };
 
     try {
-      const response = await fetch("http://localhost:8000/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestPayload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server returned status: ${response.status}`);
+      const res = await chatWithProject(requestPayload);
+      if (res.success) {
+        const aiMessage = { role: "assistant", content: res.data.response || "No response received." };
+        setMessages((prev) => [...prev, aiMessage]);
+        return true;
+      } else {
+        throw new Error(res.message);
       }
-
-      const data = await response.json();
-      const aiMessage = { role: "assistant", content: data.response || "No response received." };
-      setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       console.error(err);
       setError(err.message || "Failed to contact chat service.");
@@ -179,6 +174,7 @@ export default function useChat() {
         ...prev,
         { role: "assistant", content: `⚠️ **Error:** Unable to get response from AI Chat. ${err.message}` }
       ]);
+      return false;
     } finally {
       setLoading(false);
     }
