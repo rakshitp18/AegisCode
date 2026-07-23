@@ -26,9 +26,8 @@ function Dashboard() {
     const res = await deleteProject(deleteTarget.id);
     setIsDeleting(false);
     setDeleteTarget(null);
-    if (!res.success) {
-      alert(res.message);
-    }
+    // silently ignore errors — project list will re-sync automatically
+    void res;
   };
 
   // Filter projects by search query
