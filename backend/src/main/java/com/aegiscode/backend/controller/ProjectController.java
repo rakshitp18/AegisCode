@@ -27,4 +27,11 @@ public class ProjectController {
     public List<ProjectResponse> getMyProjects(Authentication authentication) {
         return service.getMyProjects(authentication);
     }
+
+    @DeleteMapping("/{id}")
+    public org.springframework.http.ResponseEntity<Void> deleteProject(@PathVariable Long id,
+                                                                        Authentication authentication) {
+        service.deleteProject(id, authentication);
+        return org.springframework.http.ResponseEntity.noContent().build();
+    }
 }

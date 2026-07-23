@@ -9,9 +9,19 @@ import CreateProjectModal from "../components/dashboard/CreateProjectModal";
 function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { projects, loading, error } = useProjectContext();
+  const { projects, deleteProject, loading, error } = useProjectContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleDeleteClick = async (e, id, name) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete the project "${name}" and all its analyses? This action cannot be undone.`)) {
+      const res = await deleteProject(id);
+      if (!res.success) {
+        alert(res.message);
+      }
+    }
+  };
 
   // Filter projects by search query
   const filteredProjects = projects.filter((project) =>
@@ -140,12 +150,21 @@ function Dashboard() {
                       <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
                       
                       <div className="flex justify-between items-start gap-2">
-                        <h4 className="font-extrabold text-slate-100 group-hover:text-blue-400 transition-colors leading-tight text-base">
+                        <h4 className="font-extrabold text-slate-100 group-hover:text-blue-400 transition-colors leading-tight text-base truncate pr-2">
                           {project.name}
                         </h4>
-                        <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono shrink-0">
-                          ID: {project.id}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">
+                            ID: {project.id}
+                          </span>
+                          <button
+                            onClick={(e) => handleDeleteClick(e, project.id, project.name)}
+                            className="text-[10px] bg-red-950/40 hover:bg-red-900/40 text-red-400/85 hover:text-red-400 border border-red-500/10 hover:border-red-500/30 px-1.5 py-0.5 rounded transition-all cursor-pointer"
+                            title="Delete Project"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
                       <p className="text-xs text-white/55 mt-2 line-clamp-2 leading-relaxed min-h-[36px]">
                         {project.description || "No project description provided."}

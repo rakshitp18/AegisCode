@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext } from "react";
-import { getProjects, createProject as createProjectApi } from "../api/projectApi";
+import { getProjects, createProject as createProjectApi, deleteProjectApi } from "../api/projectApi";
 import { useAuth } from "./AuthContext";
 
 const ProjectContext = createContext(null);
@@ -71,6 +71,25 @@ export function ProjectProvider({ children }) {
     }
   };
 
+  const deleteProject = async (id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await deleteProjectApi(id);
+      if (currentProject && currentProject.id === id) {
+        setCurrentProject(null);
+      }
+      await refreshProjects();
+      return { success: true };
+    } catch (err) {
+      const errMsg = err.response?.data?.error || "Failed to delete project";
+      setError(errMsg);
+      return { success: false, message: errMsg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const selectProject = (project) => {
     setCurrentProject(project);
   };
@@ -84,6 +103,7 @@ export function ProjectProvider({ children }) {
     createProject,
     selectProject,
     refreshProjects,
+    deleteProject,
   };
 
   return (
