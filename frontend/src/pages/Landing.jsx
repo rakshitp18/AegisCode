@@ -12,7 +12,7 @@ function Landing() {
 
   const handleWorkspaceRedirect = () => {
     if (isAuthenticated()) {
-      navigate("/workspace");
+      navigate("/dashboard");
     } else {
       navigate("/login");
     }

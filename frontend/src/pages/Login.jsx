@@ -12,7 +12,7 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState("");
 
-  const from = location.state?.from?.pathname || "/workspace";
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const validateForm = () => {
     const newErrors = {};

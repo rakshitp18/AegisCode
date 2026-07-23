@@ -15,6 +15,7 @@ import WorkspaceLayout from "../components/layout/WorkspaceLayout";
 import ProjectDashboard from "../components/dashboard/ProjectDashboard";
 import CreateProjectModal from "../components/dashboard/CreateProjectModal";
 
+import { useParams, useNavigate } from "react-router-dom";
 import useProject from "../hooks/useProject";
 import useProjectAnalysis from "../hooks/useProjectAnalysis";
 import useProjectAiAnalysis from "../hooks/useProjectAiAnalysis";
@@ -25,8 +26,25 @@ import { importFolder } from "../services/folderImportService";
 import { parseGitHubUrl, importGitHubRepositoryViaZip } from "../services/githubImportService";
 
 function Workspace() {
-  const { currentProject, projects, loading: projectsLoading, error: projectsError } = useProjectContext();
+  const { projectId } = useParams();
+  const navigate = useNavigate();
+  const { currentProject, projects, selectProject, loading: projectsLoading, error: projectsError } = useProjectContext();
   const [isFirstProjectModalOpen, setIsFirstProjectModalOpen] = useState(false);
+
+  // Sync active project with the route :projectId parameter
+  useEffect(() => {
+    if (projectId && projects.length > 0) {
+      const found = projects.find((p) => p.id === Number(projectId));
+      if (found) {
+        if (!currentProject || currentProject.id !== found.id) {
+          selectProject(found);
+        }
+      } else if (!projectsLoading) {
+        // Redirection if project is not found
+        navigate("/dashboard");
+      }
+    }
+  }, [projectId, projects, currentProject, projectsLoading, selectProject, navigate]);
 
   const projectName = currentProject?.name || "No Project Selected";
 
@@ -423,23 +441,12 @@ function Workspace() {
             </button>
           </div>
         </div>
-      ) : projects.length === 0 ? (
-        /* 3. Empty State */
+      ) : !currentProject ? (
+        /* 3. Loading Workspace / Selection Redirection */
         <div className="flex-1 flex items-center justify-center p-8 bg-slate-950">
-          <div className="max-w-md w-full text-center space-y-4 p-8 border border-white/5 rounded-3xl bg-[#141417]/30 backdrop-blur-sm">
-            <span className="text-5xl">🛡️</span>
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-200">No active projects</h2>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-                Create a project workspace to audit code repositories, run diagnostics, and track issues.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsFirstProjectModalOpen(true)}
-              className="bg-white text-black hover:bg-white/90 font-bold py-2.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer inline-flex items-center gap-1.5"
-            >
-              <span>➕</span> Create First Project
-            </button>
+          <div className="space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full border-4 border-slate-800 border-t-blue-500 animate-spin mx-auto"></div>
+            <p className="text-sm text-slate-400 font-medium">Loading workspace...</p>
           </div>
         </div>
       ) : (

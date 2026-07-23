@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
+import Dashboard from "./pages/Dashboard";
 import Workspace from "./pages/Workspace";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -12,7 +13,15 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route
-        path="/workspace"
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspace/:projectId"
         element={
           <ProtectedRoute>
             <Workspace />

@@ -48,9 +48,9 @@ export default function Register() {
 
     const result = await register(name, email, password);
     if (result.success) {
-      setSuccessMsg("Account created successfully! Loading workspace...");
+      setSuccessMsg("Account created successfully! Loading dashboard...");
       setTimeout(() => {
-        navigate("/workspace");
+        navigate("/dashboard");
       }, 1500);
     } else {
       setApiError(result.message || "Registration failed. Please check your inputs.");
