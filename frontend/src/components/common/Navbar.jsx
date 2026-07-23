@@ -28,7 +28,6 @@ function Navbar({ onOpenFolder, onGitHub, onShowDashboard, currentFileId }) {
 
         {onOpenFolder && (
           <>
-            {/* Project Selector Dropdown */}
             <div className="flex items-center gap-2 border-l border-slate-800 pl-4 py-1">
               <button
                 onClick={() => navigate("/dashboard")}
@@ -36,47 +35,6 @@ function Navbar({ onOpenFolder, onGitHub, onShowDashboard, currentFileId }) {
                 title="Return to Projects Dashboard"
               >
                 <span>🏠</span> Projects
-              </button>
-
-              {projectLoading ? (
-                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                  <svg className="animate-spin h-3.5 w-3.5 text-blue-500" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Syncing...</span>
-                </div>
-              ) : projects.length > 0 ? (
-                <div className="flex items-center gap-2">
-                  <select
-                    value={currentProject?.id || ""}
-                    onChange={(e) => {
-                      const selected = projects.find((p) => p.id === Number(e.target.value));
-                      if (selected) {
-                        selectProject(selected);
-                        navigate(`/workspace/${selected.id}`);
-                      }
-                    }}
-                    className="bg-slate-800 hover:bg-[#1a1a22] text-slate-200 border border-slate-700 text-xs font-semibold py-1.5 px-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer"
-                  >
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <span className="text-xs text-slate-500 italic">No projects found</span>
-              )}
-
-              {/* New Project trigger button */}
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="ml-2 text-xs bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-semibold py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-1 shadow-sm cursor-pointer"
-                title="Create New Project"
-              >
-                <span>➕</span> New Project
               </button>
             </div>
 
