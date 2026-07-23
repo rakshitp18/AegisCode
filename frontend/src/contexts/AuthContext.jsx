@@ -8,6 +8,23 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Helper function to decode email from JWT payload
+  const parseEmailFromToken = (token) => {
+    try {
+      const payload = token.split(".")[1];
+      const decoded = JSON.parse(atob(payload));
+      return decoded.sub; // subject contains the user's email in Spring security setup
+    } catch {
+      return null;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setUser(null);
+  };
+
   // Restore user from token on startup or refresh
   useEffect(() => {
     const restoreAuth = async () => {
@@ -32,17 +49,6 @@ export function AuthProvider({ children }) {
       window.removeEventListener("unauthorized-logout", handleUnauthorizedLogout);
     };
   }, []);
-
-  // Helper function to decode email from JWT payload
-  const parseEmailFromToken = (token) => {
-    try {
-      const payload = token.split(".")[1];
-      const decoded = JSON.parse(atob(payload));
-      return decoded.sub; // subject contains the user's email in Spring security setup
-    } catch (e) {
-      return null;
-    }
-  };
 
   const login = async (email, password) => {
     setLoading(true);
@@ -77,12 +83,6 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
-    setUser(null);
   };
 
   const isAuthenticated = () => {

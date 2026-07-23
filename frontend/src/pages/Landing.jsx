@@ -8,7 +8,6 @@ function Landing() {
   const navigate = useNavigate();
   const featuresRef = useRef(null);
   const { isAuthenticated, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState("Home");
   const [isNavHovered, setIsNavHovered] = useState(false);
 
   const handleWorkspaceRedirect = () => {

@@ -1,4 +1,3 @@
-import JSZip from "jszip";
 
 const SUPPORTED_EXTENSIONS = new Set([
   "java", "js", "ts", "jsx", "tsx", "py", "cpp", "c", "cs", "go",

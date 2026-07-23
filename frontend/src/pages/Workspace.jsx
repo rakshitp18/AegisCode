@@ -4,7 +4,6 @@ import AnalyzeButton from "../components/common/AnalyzeButton";
 import AlertModal from "../components/common/AlertModal";
 import RefactorModal from "../components/analysis/RefactorModal";
 
-import LanguageSelector from "../components/editor/LanguageSelector";
 import CodeEditor from "../components/editor/CodeEditor";
 import EditorToolbar from "../components/editor/EditorToolbar";
 
@@ -67,7 +66,6 @@ function Workspace() {
   const {
     analysisResult: result,
     loading: analysisLoading,
-    refactorLoading,
     analyzeCode,
     refactorCode,
     importGithubRepository,

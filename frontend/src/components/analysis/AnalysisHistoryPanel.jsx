@@ -118,6 +118,35 @@ function HistoryEntryCard({ entry, isSelected, onSelect, onDelete, isDeleting })
   );
 }
 
+const Section = ({ icon, title, children }) => (
+  <div className="space-y-1.5">
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs">{icon}</span>
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{title}</span>
+    </div>
+    <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-3.5 text-xs text-slate-300 leading-relaxed">
+      {children}
+    </div>
+  </div>
+);
+
+const ListSection = ({ icon, title, items, emptyText }) => (
+  <Section icon={icon} title={title}>
+    {!items || items.length === 0 ? (
+      <span className="text-slate-600 italic">{emptyText}</span>
+    ) : (
+      <ul className="flex flex-col gap-1.5">
+        {items.map((item, i) => (
+          <li key={i} className="flex gap-2 items-start">
+            <span className="text-slate-600 shrink-0 mt-0.5">•</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </Section>
+);
+
 // ─── Detail view ──────────────────────────────────────────────────────────────
 function HistoryDetailPanel({ entry }) {
   if (!entry) return null;
@@ -125,35 +154,6 @@ function HistoryDetailPanel({ entry }) {
   const ts = entry.createdAt
     ? new Date(entry.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
     : "—";
-
-  const Section = ({ icon, title, children }) => (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs">{icon}</span>
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{title}</span>
-      </div>
-      <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-3.5 text-xs text-slate-300 leading-relaxed">
-        {children}
-      </div>
-    </div>
-  );
-
-  const ListSection = ({ icon, title, items, emptyText }) => (
-    <Section icon={icon} title={title}>
-      {!items || items.length === 0 ? (
-        <span className="text-slate-600 italic">{emptyText}</span>
-      ) : (
-        <ul className="flex flex-col gap-1.5">
-          {items.map((item, i) => (
-            <li key={i} className="flex gap-2 items-start">
-              <span className="text-slate-600 shrink-0 mt-0.5">•</span>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Section>
-  );
 
   return (
     <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pb-4">

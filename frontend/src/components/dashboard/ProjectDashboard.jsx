@@ -15,6 +15,15 @@ function ProjectDashboard({
 }) {
   const [activeViewTab, setActiveViewTab] = useState("codebase"); // "codebase" | "analytics"
 
+  const {
+    projectOverview = { projectName: "", totalFiles: 0, totalFolders: 0, languages: [], loc: 0, commentLines: 0, blankLines: 0 },
+    complexityMetrics = { avgComplexity: 0, maxComplexity: 0, totalClasses: 0, totalMethods: 0, complexityDistribution: {} },
+    qualityMetrics = { dupLines: 0, totalLines: 0, cognitiveComplexity: 0, codeSmells: 0, codeSmellsList: [], fileSizes: [], issues: [], todos: 0, unusedImports: [], duplicateMethods: [], largeClasses: [], longMethods: [] },
+    securityWarnings = [],
+    javaMetrics = { imports: [], packageDeclarations: [], classNames: [], methodNames: [], variableNames: [] },
+    fileInsights = []
+  } = analysisResults || {};
+
   if (staticLoading && !analysisResults && activeViewTab === "codebase") {
     return (
       <div className="h-full flex items-center justify-center bg-slate-955 text-slate-450 select-none py-20">
