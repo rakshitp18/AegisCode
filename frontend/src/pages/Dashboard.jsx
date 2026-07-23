@@ -12,14 +12,22 @@ function Dashboard() {
   const { projects, deleteProject, loading, error } = useProjectContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, name }
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDeleteClick = async (e, id, name) => {
+  const handleDeleteClick = (e, id, name) => {
     e.stopPropagation();
-    if (window.confirm(`Are you sure you want to delete the project "${name}" and all its analyses? This action cannot be undone.`)) {
-      const res = await deleteProject(id);
-      if (!res.success) {
-        alert(res.message);
-      }
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    const res = await deleteProject(deleteTarget.id);
+    setIsDeleting(false);
+    setDeleteTarget(null);
+    if (!res.success) {
+      alert(res.message);
     }
   };
 
@@ -242,6 +250,57 @@ function Dashboard() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-[999] flex items-center justify-center"
+          onClick={() => !isDeleting && setDeleteTarget(null)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+          {/* Panel */}
+          <div
+            className="relative z-10 bg-[#111115] border border-white/8 rounded-2xl px-8 py-7 w-[360px] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div className="flex justify-center mb-5">
+              <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </div>
+            </div>
+
+            <p className="text-center text-sm font-semibold text-white mb-1">Delete project?</p>
+            <p className="text-center text-xs text-white/40 mb-6 leading-relaxed">
+              <span className="text-white/70 font-medium">{deleteTarget.name}</span> and all its analyses will be permanently removed.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold border border-white/10 text-white/50 hover:text-white hover:border-white/20 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold bg-white/8 hover:bg-white/12 text-white border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+              >
+                {isDeleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
