@@ -35,10 +35,10 @@ function DockItem({
     [1, maxScale, 1]
   );
 
-  const springConfig = { damping: 20, stiffness: 300, mass: 0.5 };
+  const springConfig = { damping: 30, stiffness: 500, mass: 0.2 };
   const smoothScale = useSpring(scale, springConfig);
   const size = useTransform(smoothScale, (s) => s * iconSize);
-  const y = useTransform(smoothScale, (s) => (s - 1) * -10);
+  const y = useTransform(smoothScale, (s) => (s - 1) * -6);
   const smoothY = useSpring(y, springConfig);
 
   return (

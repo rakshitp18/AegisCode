@@ -79,7 +79,7 @@ function Navbar({ onOpenFolder, onGitHub, onShowDashboard, currentFileId }) {
   return (
     <>
       {/* ── Top bar: brand + user ────────────────────────────────── */}
-      <nav className="flex justify-between items-center px-8 py-3.5 bg-[#0a0a0d]/90 backdrop-blur-sm border-b border-white/5 shrink-0 select-none z-40">
+      <nav className="flex justify-between items-center px-8 py-3.5 bg-[#0a0a0d]/90 backdrop-blur-sm border-b border-white/5 shrink-0 select-none z-40 overflow-visible">
         {/* Brand logo */}
         <div
           onClick={() => navigate(isAuthenticated() ? "/dashboard" : "/")}
@@ -90,6 +90,20 @@ function Navbar({ onOpenFolder, onGitHub, onShowDashboard, currentFileId }) {
             <div className="w-1 h-3.5 bg-white transform skew-x-[-15deg]" />
           </div>
           <span>AegisCode</span>
+        </div>
+
+        {/* Center: magnetic dock (workspace only) */}
+        <div className="flex-1 flex justify-center items-center">
+          {onOpenFolder && (
+            <MagneticDock
+              items={workspaceDockItems}
+              iconSize={32}
+              maxScale={1.35}
+              magneticDistance={90}
+              showLabels={true}
+              variant="transparent"
+            />
+          )}
         </div>
 
         {/* Right: user */}
@@ -114,20 +128,6 @@ function Navbar({ onOpenFolder, onGitHub, onShowDashboard, currentFileId }) {
           )}
         </div>
       </nav>
-
-      {/* ── Bottom magnetic dock (workspace only) ───────────────── */}
-      {onOpenFolder && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
-          <MagneticDock
-            items={workspaceDockItems}
-            iconSize={52}
-            maxScale={1.6}
-            magneticDistance={130}
-            showLabels={true}
-            variant="glass"
-          />
-        </div>
-      )}
 
       {/* Create Project Modal */}
       <CreateProjectModal
