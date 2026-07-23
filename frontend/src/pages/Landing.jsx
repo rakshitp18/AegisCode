@@ -25,9 +25,9 @@ function Landing() {
       <TyndallParticles className="z-0" />
 
       {/* Hero Section Container */}
-      <div className="min-h-screen flex flex-col justify-between relative z-10 w-full pt-12">
-        {/* 1. Header Navigation (Fixed top bar with hover-to-expand center tab) */}
-        <header className="fixed top-0 left-0 right-0 h-12 bg-black border-b border-white/5 z-50">
+      <div className="min-h-screen flex flex-col justify-between relative z-10 w-full pt-16">
+        {/* 1. Header Navigation (Fixed transparent bar with floating center menu) */}
+        <header className="fixed top-0 left-0 right-0 h-16 bg-transparent z-50">
           <div className="flex items-center justify-between px-6 h-full w-full max-w-7xl mx-auto relative">
             
             {/* Left: Brand Logo */}
@@ -42,35 +42,14 @@ function Landing() {
               <span>AegisCode</span>
             </div>
             
-            {/* Center: Hover-to-Expand Hanging Tab */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-full -translate-y-[1px] z-50">
+            {/* Center: Hover-to-Expand Floating Pill */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
               <div
                 onMouseEnter={() => setIsNavHovered(true)}
                 onMouseLeave={() => setIsNavHovered(false)}
-                className="group relative bg-black border-b border-x border-white/10 flex items-center justify-center transition-all duration-500 ease-out px-4 h-11 rounded-b-[22px] cursor-pointer"
-                style={{ width: isNavHovered ? '370px' : '56px' }}
+                className="group relative bg-[#141417]/85 border border-white/10 flex items-center justify-center transition-all duration-500 ease-out px-4 h-10 rounded-full cursor-pointer backdrop-blur-md"
+                style={{ width: isNavHovered ? '370px' : '44px' }}
               >
-                {/* Seamless top connection mask to cover header border-b */}
-                <div className="absolute -top-[2px] left-0 right-0 h-[3px] bg-black z-20" />
-
-                {/* Concave Left Corner */}
-                <div
-                  className="absolute top-0 right-full w-5 h-5 bg-transparent pointer-events-none z-10"
-                  style={{
-                    borderTopRightRadius: '20px',
-                    boxShadow: '5px -5px 0 0 #000000',
-                  }}
-                />
-                
-                {/* Concave Right Corner */}
-                <div
-                  className="absolute top-0 left-full w-5 h-5 bg-transparent pointer-events-none z-10"
-                  style={{
-                    borderTopLeftRadius: '20px',
-                    boxShadow: '-5px -5px 0 0 #000000',
-                  }}
-                />
-
                 {/* Left Side Links (Slides out to the left) */}
                 <div 
                   className={`flex gap-6 select-none text-[11px] font-semibold text-white/50 whitespace-nowrap transition-all duration-500 ease-out absolute top-1/2 -translate-y-1/2 ${
@@ -94,8 +73,8 @@ function Landing() {
                 </div>
 
                 {/* Center Stylized Shield / Slash Logo */}
-                <div className="z-20 shrink-0 transition-transform duration-700 group-hover:rotate-[360deg] flex items-center justify-center w-8 h-8">
-                  <svg className="w-5.5 h-5.5 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <div className="z-20 shrink-0 transition-transform duration-700 group-hover:rotate-[360deg] flex items-center justify-center w-7 h-7">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="50" cy="50" r="38" stroke="currentColor" strokeWidth="11" />
                     <path d="M35 65 L65 35" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
                     <path d="M48 65 L65 48" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
@@ -137,7 +116,7 @@ function Landing() {
                     Log out
                   </button>
                   <button 
-                    onClick={() => navigate("/workspace")}
+                    onClick={() => navigate("/dashboard")}
                     className="flex items-center gap-1.5 bg-white text-black px-4 py-1.5 rounded-full text-[10px] font-bold hover:bg-white/90 active:scale-95 transition-all shadow-md cursor-pointer tracking-wider uppercase"
                   >
                     <span>Workspace</span>
