@@ -13,9 +13,13 @@ const axiosClient = axios.create({
 // Request interceptor to automatically attach Authorization header
 axiosClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {
+      console.warn("Axios client failed to fetch token from localStorage:", e);
     }
     return config;
   },
@@ -24,11 +28,11 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to intercept 451/401 responses, clear token, and redirect
+// Response interceptor to intercept 401/403 responses, clear token, and redirect
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       localStorage.removeItem("token");
       // Redirect to the login route
       window.location.href = "/login";

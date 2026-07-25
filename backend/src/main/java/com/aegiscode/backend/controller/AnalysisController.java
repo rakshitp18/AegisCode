@@ -53,13 +53,11 @@ public class AnalysisController {
     }
 
     @PostMapping("/github-import")
-    public Map<String, Object> importGitHubRepository(@RequestBody Map<String, String> request) {
+    public Map<String, Object> importGitHubRepository(@RequestBody Map<String, String> request, Authentication authentication) {
+        if (request == null || !request.containsKey("url") || request.get("url") == null) {
+            throw new IllegalArgumentException("GitHub repository URL is required.");
+        }
         String url = request.get("url");
-        return analyzerService.importGitHubRepository(url);
-    }
-
-    @PostMapping("/refactor")
-    public RefactorResponse refactor(@RequestBody RefactorRequest request) {
-        return analyzerService.refactorCode(request);
+        return analyzerService.importGitHubRepository(url, authentication);
     }
 }

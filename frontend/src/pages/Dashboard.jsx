@@ -50,7 +50,7 @@ function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white font-sans relative overflow-x-hidden selection:bg-white selection:text-black">
+    <div className="min-h-screen bg-[#09090b] text-white font-sans relative selection:bg-white selection:text-black">
       {/* Tyndall Particles Ambient Background */}
       <TyndallParticles className="z-0" />
 
@@ -70,7 +70,7 @@ function Dashboard() {
                 Secure Code Auditor
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold mt-3 text-slate-100">
-                Welcome back, <span className="text-blue-500 font-mono text-xl sm:text-2xl">{user?.email || "auditor"}</span>!
+                Welcome back, <span className="text-blue-500 font-mono text-xl sm:text-2xl">{user?.name || user?.email || "auditor"}</span>!
               </h2>
               <p className="text-xs text-white/55 mt-1.5 leading-relaxed max-w-xl">
                 Audit, evaluate complexity distribution structures, and discover critical vulnerabilities or refactoring opportunities in your codebases.

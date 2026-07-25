@@ -1,165 +1,116 @@
 # AegisCode 🛡️
 
-AegisCode is an advanced, enterprise-grade AI-Powered Static Code Analysis Platform. It parses Java source files using a native Abstract Syntax Tree (AST) compiler engine to calculate structural metrics (LOC, complexity, class coupling dependencies) and orchestrates LLM completion pipelines to surface deep architectural patterns, potential security flaws, and side-by-side refactoring improvements.
+AegisCode is an AI-powered static code analysis and architectural intelligence platform. It combines native AST compiler parsing, cloud-native GitHub Zipball streaming, and Groq-powered AI completion pipelines to perform deep security auditing, code quality diagnostics, and interactive project-level code chat.
 
 ---
 
 ## 📋 Table of Contents
-1. [Project Overview](#-project-overview)
-2. [Problem Statement](#-problem-statement)
-3. [Solution](#-solution)
-4. [Architecture](#-architecture)
-5. [Features](#-features)
-6. [Technology Stack](#-technology-stack)
-7. [Folder Structure](#-folder-structure)
-8. [Installation & Setup](#-installation--setup)
-9. [Environment Variables](#-environment-variables)
-10. [API Documentation](#-api-documentation)
-11. [Future Scope](#-future-scope)
-12. [License](#-license)
+1. [Key Capabilities](#-key-capabilities)
+2. [Architecture](#-architecture)
+3. [Technology Stack](#-technology-stack)
+4. [GitHub OAuth & Cloud Importer](#-github-oauth--cloud-importer)
+5. [Installation & Setup](#-installation--setup)
+6. [Environment Variables](#-environment-variables)
+7. [API Endpoints](#-api-endpoints)
+8. [License](#-license)
 
 ---
 
-## 🔍 Project Overview
+## ✨ Key Capabilities
 
-AegisCode bridges the gap between traditional compiler-level syntactic linters and high-level artificial intelligence tools. It parses codebases using JavaParser to extract abstract AST node configurations, visualizes class coupling and code complexity, and utilizes Groq-based Llama-3-70B model endpoints to generate custom refactoring advice and architectural suggestions.
-
----
-
-## ⚠️ Problem Statement
-
-Modern software development teams face two distinct challenges when performing code reviews:
-1. **Shallow Automated Analysis**: Traditional static analysis tools (like SonarQube or Checkstyle) point out syntax formatting style or simple null-pointer risks, but fail to detect architectural anti-patterns, duplicated business logic across class boundaries, or microservice boundary leaks.
-2. **Context-Blind AI Assisting**: General-purpose LLM interfaces operate on single-file contexts, missing project-level structures, class coupling metrics, and database-backed audit histories.
-
----
-
-## 💡 Solution
-
-AegisCode provides a hybrid, compiler-informed AI auditing workflow:
-- **Compiler Front-End**: Parses Java source files into real compiler-grade ASTs using JavaParser, computing precise cyclomatic complexity, coupling, and metric ratios locally.
-- **Context-Engineered AI Prompting**: Enriches LLM query prompts with the generated AST metrics, structure maps, and class interactions, allowing the AI to output highly contextual code optimizations.
-- **Audit Logging & Analytics**: Stores audit runs into a relational PostgreSQL database, tracking code health trends, language distributions, and metrics over time in a premium interactive dashboard.
+- **⚡ Fast GitHub Zipball Importer**: Streams repository archives directly over HTTP via `https://codeload.github.com` in **1–2 seconds**, operating 100% in-memory with zero local `git` CLI binary dependencies (tailored for Render cloud deployments).
+- **🔑 GitHub OAuth 2.0 Integration**: Authenticate with GitHub to grant **5,000 requests/hour** API rate limits and private repository access.
+- **🔍 Deep AST & Static Code Auditing**: Computes cyclomatic complexity, lines of code (LOC), language breakdowns, and static code quality diagnostics using JavaParser AST.
+- **🤖 Groq-Powered AI Code Analysis**: Surfaces architectural patterns, security vulnerabilities, performance bottlenecks, and side-by-side code refactoring suggestions.
+- **💬 Project Code Chat**: Converse with an AI assistant contextualized with your project's file structure and code files.
+- **📊 Developer Dashboard & Workspaces**: Create, manage, and persist multiple projects with isolated file trees and historical audit records in PostgreSQL.
 
 ---
 
 ## 🏗️ Architecture
 
-AegisCode uses a decoupled client-server architecture:
-
 ```
-┌─────────────────┐       JSON API       ┌────────────────────┐
-│  React Browser  │ <──────────────────> │ Spring Boot Server │
-│ (Vite Frontend) │      over HTTP       │  (Java Backend)    │
-└─────────────────┘                      └─────────┬──────────┘
-                                                   │   JPA / JDBC
-                                                   ├──────────────┐
-                                                   ▼              ▼
-                                            ┌────────────┐  ┌───────────┐
-                                            │ Groq Llama │  │ PostgreSQ │
-                                            │  (LLM API) │  │ (Database │
-                                            └────────────┘  └───────────┘
+┌─────────────────┐        JSON API        ┌────────────────────┐
+│  React 19 / Vite │ <───────────────────> │ Spring Boot 3      │
+│  (Frontend IDE) │       over HTTP       │ (Java 17 Backend)  │
+└─────────────────┘                        └─────────┬──────────┘
+                                                     │
+                                   ┌─────────────────┼─────────────────┐
+                                   ▼                 ▼                 ▼
+                            ┌─────────────┐   ┌─────────────┐   ┌────────────┐
+                            │ PostgreSQL  │   │  Groq LLM   │   │ GitHub API │
+                            │ (Database)  │   │ (Llama 3.3) │   │ (OAuth/Zip)│
+                            └─────────────┘   └─────────────┘   └────────────┘
 ```
-
-For a deep-dive on design patterns, sequence flows, and entity relations, see [architecture_documentation.md](./reports/architecture_documentation.md).
-
----
-
-## ✨ Features
-
-- **📂 Project Workspaces**: Support for multiple isolated developer projects.
-- **📥 Git Repository Auto-Import**: Clones remote GitHub repositories directly into temporary local workspaces.
-- **📄 AST Codebase Metrics**: Renders file-tree layouts, computes Lines of Code (LOC), directory counts, and constructs class coupling maps.
-- **🕒 Interactive Analysis History**: View historical file analysis reports, filter audits by language or complexity, and delete records cleanly.
-- **📈 Analytics Dashboard**: Visualizes language usage donuts, complexity bars, and analysis counts trends using custom lightweight SVGs.
-- **⚙️ Side-by-Side AI Refactoring**: Suggests code refactoring based on target intents (readability, final variables, concurrency locks) with side-by-side comparison panels.
-- **💬 Project Chat**: Converse with the AI assistant directly informed by the file tree, active class structure, and code metrics.
 
 ---
 
 ## 🛠️ Technology Stack
 
 ### Frontend
-- **React 19** (Single-Page Application interface)
+- **React 19** (Single-Page Application IDE)
 - **Vite** (Build toolchain)
-- **Tailwind CSS** (Styling & layout)
-- **React Router 6** (Stateless routing)
+- **Tailwind CSS** (Responsive UI & styling)
+- **React Router 6** (Application routing)
+- **Axios** (HTTP Client with JWT interceptors)
 
 ### Backend
-- **Java 17 & Spring Boot 3** (REST API)
-- **Spring Security & Spring JWT** (Stateless JWT token filter auth)
+- **Java 17 & Spring Boot 3**
+- **Spring Security** (Stateless JWT authentication filter)
 - **JavaParser** (Native Java AST compiler parsing)
-- **Spring Data JPA** (PostgreSQL ORM mapping)
-- **JUnit 5 & Mockito** (Unit & Network interception testing)
+- **Spring Data JPA & Hibernate** (PostgreSQL ORM mapping)
+- **Maven** (Dependency management)
 
-### Database & Deployment
-- **PostgreSQL** (Relational Database)
-- **Docker & Docker Compose** (Containerization orchestration)
+### Database & Cloud
+- **PostgreSQL** (Relational storage for users, projects, and analyses)
 
 ---
 
-## 📂 Folder Structure
+## 🚀 GitHub OAuth & Cloud Importer
 
-```
-AegisCode/
-├── backend/
-│   ├── src/
-│   │   ├── main/java/com/aegiscode/backend/
-│   │   │   ├── config/          # Spring Security, CORS configuration
-│   │   │   ├── controller/      # Auth, Projects, Analytics REST entrypoints
-│   │   │   ├── dto/             # Request & Response serialized payloads
-│   │   │   ├── entity/          # JPA Models (User, Project, Analysis)
-│   │   │   ├── exception/       # ControllerAdvice error handlers
-│   │   │   ├── repository/      # JPA data layers
-│   │   │   ├── security/        # JWT Filter, User Details Provider
-│   │   │   └── service/         # AST Parsing, LLM Orchestration logic
-│   │   └── test/java/           # JUnit Service & Mockito tests
-│   └── pom.xml                  # Maven Configuration
-└── frontend/
-    ├── src/
-    │   ├── api/                 # Axios clients mappings
-    │   ├── components/          # Reusable inputs, charts, protected routes
-    │   ├── contexts/            # Global state Providers
-    │   ├── pages/               # Workspace, Login, Register panels
-    │   └── App.jsx              # Router routing
-    ├── package.json             # NPM package scripts
-    └── vite.config.js           # Vite server definitions
-```
+AegisCode features a stream-based repository importer engineered for cloud environments (like Render):
+
+1. **HTTP Archive Streaming**: Instead of executing OS `git clone` sub-processes, AegisCode fetches the repository zip archive over HTTP (`https://codeload.github.com/{owner}/{repo}/zip/refs/heads/{branch}`) and extracts entries using Java's `ZipInputStream`.
+2. **OAuth 2.0 Rate Limit Boost**: Linking a GitHub account attaches `Authorization: Bearer <token>` headers to repository downloads, boosting rate limits from 60 req/hr to **5,000 req/hr**.
 
 ---
 
 ## 🚀 Installation & Setup
 
 ### Prerequisites
-- JDK 17+ installed.
-- Node.js 18+ installed.
-- PostgreSQL database instance running.
-- Groq API Key (get it free from [Console Groq](https://console.groq.com/)).
+- Java 17+ installed
+- Node.js 18+ installed
+- PostgreSQL database running
+- Groq API Key ([Console Groq](https://console.groq.com/))
 
-### 1. Database Setup
-Create an empty database in PostgreSQL named `Aegiscode`:
+### 1. Database Initialization
+Create a PostgreSQL database named `Aegiscode`:
 ```sql
 CREATE DATABASE Aegiscode;
 ```
 
-### 2. Backend Config
-Open `backend/src/main/resources/application.properties` and edit the credentials:
+### 2. Backend Configuration & Launch
+Set database credentials and API keys in `backend/src/main/resources/application.properties` (or set environment variables):
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/Aegiscode
-spring.datasource.username=YOUR_POSTGRES_USERNAME
-spring.datasource.password=YOUR_POSTGRES_PASSWORD
-GROQ_API_KEY=YOUR_GROQ_API_KEY
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_PASSWORD
+
+groq.api.key=YOUR_GROQ_API_KEY
+github.client.id=YOUR_GITHUB_CLIENT_ID
+github.client.secret=YOUR_GITHUB_CLIENT_SECRET
+github.redirect.uri=http://localhost:5173/auth/github/callback
 ```
 
-Run the Spring Boot application:
+Run the backend server:
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
-The server starts listening on `http://localhost:8000`.
+The backend starts listening at `http://localhost:8000`.
 
-### 3. Frontend Config
-Navigate to the frontend folder, install dependencies, and run:
+### 3. Frontend Launch
+Install dependencies and launch the dev server:
 ```bash
 cd frontend
 npm install
@@ -171,42 +122,45 @@ Open `http://localhost:5173` in your browser.
 
 ## 🔑 Environment Variables
 
-The application can read configurations from standard environment variables:
-
-| Variable Name | Default Value | Purpose |
-| :--- | :--- | :--- |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/Aegiscode` | Database connection string |
-| `SPRING_DATASOURCE_USERNAME` | `postgres` | Database username |
-| `SPRING_DATASOURCE_PASSWORD` | — | Database user password |
-| `GROQ_API_KEY` | — | Groq Llama completion access key |
-| `JWT_SECRET` | `yourVeryLongSecretKeyForAegisCode2026SuperSecureKey` | JWT signing secret |
+| Variable | Purpose |
+| :--- | :--- |
+| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC connection URL |
+| `SPRING_DATASOURCE_USERNAME` | PostgreSQL username |
+| `SPRING_DATASOURCE_PASSWORD` | PostgreSQL password |
+| `GROQ_API_KEY` | Groq AI completion API key |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App Client ID |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App Client Secret |
+| `GITHUB_REDIRECT_URI` | OAuth callback URI (`http://localhost:5173/auth/github/callback`) |
+| `JWT_SECRET` | Secret key for signing JWT tokens |
 
 ---
 
-## 🌐 API Documentation
+## 🌐 API Endpoints
 
-### Authentication Mappings
-- `POST /api/auth/register` — Creates a developer login account.
-- `POST /api/auth/login` — Auths credentials and yields a bearer JWT token.
+### Authentication
+- `POST /api/auth/register` — Register a new account
+- `POST /api/auth/login` — Authenticate user and receive JWT token
+
+### GitHub OAuth
+- `GET /api/auth/github/login-url` — Generate GitHub OAuth authorization URL
+- `POST /api/auth/github/callback` — Exchange OAuth code for access token & JWT
+- `GET /api/auth/github/status` — Get GitHub account connection status
 
 ### Workspace Projects
-- `GET /api/projects` — Lists current user projects.
-- `POST /api/projects` — Creates a new project workspace.
+- `GET /api/projects` — Fetch user's projects
+- `POST /api/projects` — Create a new project workspace
+- `DELETE /api/projects/{id}` — Delete a project
 
-### Analysis & Refactoring
-- `POST /api/analyze` — Analyzes a code snippet (requires Bearer Token).
-- `POST /api/dashboard/analytics` — Fetches dashboard stats.
-- `GET /api/projects/{projectId}/analyses` — Gets project run history.
-- `DELETE /api/analyses/{id}` — Deletes an analysis entry.
-
----
-
-## 🔮 Future Scope
-- **Multilingual AST support**: Integrate Tree-Sitter parsing to enable native AST structures for Python, C++, Go, and TypeScript.
-- **CI/CD Integration Hooks**: Expose a CLI interface that allows developers to block Github PR merges if complexity triggers exceed bounds.
-- **Interactive Dependency Visualizer**: Interactive D3.js nodes representation graphs mapping code coupling directions.
+### Analysis & AI Engine
+- `POST /analyze` — Single-file AI code analysis
+- `POST /analyze-project` — Full multi-file project AI analysis
+- `POST /analyze-project-static` — Fast AST static analysis
+- `POST /chat` — Context-aware project code chat
+- `POST /github-import` — Zipball repository stream importer
+- `GET /api/projects/{projectId}/analyses` — Fetch project analysis history
+- `DELETE /api/analyses/{id}` — Delete an analysis record
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.

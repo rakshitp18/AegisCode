@@ -1,4 +1,4 @@
-import api from "./api";
+import axiosClient from "../api/axiosClient";
 
 function summarizeContent(content) {
   if (!content) return "[Empty File]";
@@ -81,7 +81,7 @@ export async function analyzeProjectRequest(projectName, files, startOffset = 0)
     content: summarizeContent(file.content || "")
   }));
 
-  const response = await api.post("/analyze-project", {
+  const response = await axiosClient.post("/analyze-project", {
     projectName,
     files: optimizedFiles,
     startOffset: startOffset

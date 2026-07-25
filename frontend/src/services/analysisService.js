@@ -1,8 +1,8 @@
-import api from "./api";
+import axiosClient from "../api/axiosClient";
 
 export async function analyzeCodeRequest(language, code) {
 
-    const response = await api.post("/analyze", {
+    const response = await axiosClient.post("/analyze", {
         language,
         code,
     });
@@ -17,22 +17,10 @@ export async function analyzeProjectStaticRequest(projectName, files) {
     content: file.content || ""
   }));
 
-  const response = await api.post("/analyze-project-static", {
+  const response = await axiosClient.post("/analyze-project-static", {
     projectName,
     files: mappedFiles
   });
 
-  return response.data;
-}
-
-export async function refactorCodeRequest(language, fileContent, selectedText, scope, cursorLine, intent) {
-  const response = await api.post("/refactor", {
-    language,
-    fileContent,
-    selectedText,
-    scope,
-    cursorLine,
-    intent
-  });
   return response.data;
 }

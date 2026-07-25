@@ -15,18 +15,13 @@ export async function analyzeProjectStatic(data) {
   return response.data;
 }
 
-export async function refactorCode(data) {
-  const response = await axiosClient.post("/refactor", data);
-  return response.data;
-}
-
 export async function chatWithProject(data) {
   const response = await axiosClient.post("/chat", data);
   return response.data;
 }
 
-export async function importGithubRepository(data) {
-  const response = await axiosClient.post("/github-import", data);
+export async function importGithubRepository(data, signal) {
+  const response = await axiosClient.post("/github-import", data, { signal });
   return response.data;
 }
 

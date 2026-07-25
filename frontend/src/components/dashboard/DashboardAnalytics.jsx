@@ -256,8 +256,7 @@ function ActivityRow({ item }) {
   const icons = {
     analysis: { emoji: "📄", cls: "bg-blue-600/10 text-blue-400 border-blue-500/20" },
     project_creation: { emoji: "➕", cls: "bg-emerald-600/10 text-emerald-400 border-emerald-500/20" },
-    github_import: { emoji: "📥", cls: "bg-purple-600/10 text-purple-400 border-purple-500/20" },
-    refactor: { emoji: "⚙️", cls: "bg-amber-600/10 text-amber-400 border-amber-500/20" }
+    github_import: { emoji: "📥", cls: "bg-purple-600/10 text-purple-400 border-purple-500/20" }
   };
   const config = icons[item.type] || { emoji: "🔔", cls: "bg-slate-800 text-slate-400" };
 
@@ -301,7 +300,6 @@ export default function DashboardAnalytics({ projectId }) {
     totalAnalyses,
     totalFilesAnalyzed,
     bugsFound,
-    refactorsPerformed,
     githubReposImported,
     languagesAnalysed = {},
     complexityDistribution = {},
@@ -317,12 +315,11 @@ export default function DashboardAnalytics({ projectId }) {
     <div className="space-y-6">
       
       {/* 1. Overview Widgets Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard title="Total Projects" value={totalProjects} icon="📁" bgClass="bg-blue-600/10 border-blue-500/20 text-blue-400" />
         <StatCard title="Total Analyses" value={totalAnalyses} icon="📊" bgClass="bg-purple-600/10 border-purple-500/20 text-purple-400" />
         <StatCard title="Files Analyzed" value={totalFilesAnalyzed} icon="📄" bgClass="bg-emerald-600/10 border-emerald-500/20 text-emerald-400" />
         <StatCard title="Bugs Found" value={bugsFound} icon="🐞" bgClass="bg-red-600/10 border-red-500/20 text-red-400" />
-        <StatCard title="Refactors Runs" value={refactorsPerformed} icon="⚙️" bgClass="bg-amber-600/10 border-amber-500/20 text-amber-400" />
         <StatCard title="Github Repos" value={githubReposImported} icon="📥" bgClass="bg-indigo-600/10 border-indigo-500/20 text-indigo-400" />
       </div>
 

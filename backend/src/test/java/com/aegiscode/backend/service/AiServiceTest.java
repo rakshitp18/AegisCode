@@ -103,36 +103,6 @@ class AiServiceTest {
     }
 
     @Test
-    void refactorWithAi_HappyPath_ReturnsRefactorResponse() throws Exception {
-        String jsonResponse = "{\n" +
-                "  \"choices\": [{\n" +
-                "    \"message\": {\n" +
-                "      \"content\": \"{\\\"originalCode\\\":\\\"int a = 1;\\\",\\\"refactoredCode\\\":\\\"final int a = 1;\\\",\\\"explanation\\\":\\\"Made final\\\",\\\"improvements\\\":[\\\"final\\\"]}\"\n" +
-                "    }\n" +
-                "  }]\n" +
-                "}";
-
-        when(mockResponse.statusCode()).thenReturn(200);
-        when(mockResponse.body()).thenReturn(jsonResponse);
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(mockResponse);
-
-        RefactorRequest request = new RefactorRequest();
-        request.setLanguage("java");
-        request.setScope("file");
-        request.setFileContent("int a = 1;");
-        request.setSelectedText("int a = 1;");
-        request.setIntent("final");
-        request.setCursorLine(1);
-        
-        RefactorResponse response = aiService.refactorWithAi(request);
-
-        assertNotNull(response);
-        assertEquals("int a = 1;", response.getOriginalCode());
-        assertEquals("final int a = 1;", response.getRefactoredCode());
-        assertEquals("Made final", response.getExplanation());
-    }
-
-    @Test
     void chatWithProjectContext_HappyPath_ReturnsResponseString() throws Exception {
         String jsonResponse = "{\n" +
                 "  \"choices\": [{\n" +

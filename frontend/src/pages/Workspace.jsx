@@ -1,35 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import Navbar from "../components/common/Navbar";
-import AnalyzeButton from "../components/common/AnalyzeButton";
 import AlertModal from "../components/common/AlertModal";
-import RefactorModal from "../components/analysis/RefactorModal";
-
-import CodeEditor from "../components/editor/CodeEditor";
-import EditorToolbar from "../components/editor/EditorToolbar";
-
-import Sidebar from "../components/layout/Sidebar";
-import RightPanel from "../components/layout/RightPanel";
-import StatusBar from "../components/layout/StatusBar";
-import WorkspaceLayout from "../components/layout/WorkspaceLayout";
-
-import ProjectDashboard from "../components/dashboard/ProjectDashboard";
 import CreateProjectModal from "../components/dashboard/CreateProjectModal";
+import UploadFolderModal from "../components/common/UploadFolderModal";
 
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Outlet } from "react-router-dom";
 import useProject from "../hooks/useProject";
 import useProjectAnalysis from "../hooks/useProjectAnalysis";
 import useProjectAiAnalysis from "../hooks/useProjectAiAnalysis";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useAnalysisContext } from "../contexts/AnalysisContext";
-
-import { importFolder } from "../services/folderImportService";
-import { parseGitHubUrl, importGitHubRepositoryViaZip } from "../services/githubImportService";
+import { parseGitHubUrl } from "../services/githubImportService";
 
 function Workspace() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { currentProject, projects, selectProject, loading: projectsLoading, error: projectsError } = useProjectContext();
+  const { currentProject, projects, selectProject, loading: projectsLoading, error: projectsError, refreshProjects } = useProjectContext();
   const [isFirstProjectModalOpen, setIsFirstProjectModalOpen] = useState(false);
+  const [loadedProjectId, setLoadedProjectId] = useState(null);
 
   // Sync active project with the route :projectId parameter
   useEffect(() => {
@@ -48,24 +36,19 @@ function Workspace() {
 
   const projectName = currentProject?.name || "No Project Selected";
 
-  const [activeAnalysisTab, setActiveAnalysisTab] = useState("file");
   const [lastOpenedFileId, setLastOpenedFileId] = useState(null);
 
-  const fileInputRef = useRef(null);
   const editorRef = useRef(null);
   const abortControllerRef = useRef(null);
 
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
   const [gitHubUrl, setGitHubUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [importStage, setImportStage] = useState("");
   const [importError, setImportError] = useState("");
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  // Refactor state
-  const [isRefactoring, setIsRefactoring] = useState(false);
-  const [refactorResult, setRefactorResult] = useState(null);
-  const [refactorScope, setRefactorScope] = useState("selection");
-  const [refactorIntent, setRefactorIntent] = useState("");
-  const [showRefactorSetup, setShowRefactorSetup] = useState(false);
+
 
   const {
     files,
@@ -75,17 +58,19 @@ function Workspace() {
     updateCurrentFile,
     updateCurrentFileLanguage,
     addNewFile,
-    deleteFile,
+    addNewFolder,
+    renameItem,
+    deleteItem,
+    moveItem,
     importProject,
     getProjectStats,
     gitMetadata,
-  } = useProject();
+  } = useProject(projectId);
 
   const {
     analysisResult: result,
     loading: analysisLoading,
     analyzeCode,
-    refactorCode,
     importGithubRepository,
     setAnalysisResult: setResult,
   } = useAnalysisContext();
@@ -107,210 +92,185 @@ function Workspace() {
   } = useProjectAiAnalysis();
 
   const runGitHubImport = async (url) => {
-    const parsed = parseGitHubUrl(url);
-    if (!parsed) {
-      setImportError("Invalid URL format. Please use a valid GitHub repository URL.");
+    if (isImporting) return;
+
+    // Stage 1: Validating repository...
+    setIsImporting(true);
+    setImportStage("Validating repository...");
+    setImportError("");
+
+    const validationMsg = validateGitHubUrl(url);
+    if (validationMsg) {
+      setImportError(validationMsg);
+      setAlertInfo({
+        title: "Invalid Repository URL",
+        message: validationMsg
+      });
+      setIsImporting(false);
       return;
     }
+
+    const parsed = parseGitHubUrl(url);
+    if (!parsed) {
+      const errMsg = "Invalid repository URL format. Use: https://github.com/owner/repository";
+      setImportError(errMsg);
+      setAlertInfo({
+        title: "Invalid Repository URL",
+        message: errMsg
+      });
+      setIsImporting(false);
+      return;
+    }
+
+    // Stage 2: Cloning repository...
+    setImportStage("Cloning repository...");
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    let isResolved = false;
-
-    // Helper for browser-side fallback
-    const runClientSideFallback = async (reason) => {
-      if (isResolved) return;
-      isResolved = true;
-      console.warn(`GitHub import failed or timed out (${reason}). Launching client-side zip downloader...`);
-      try {
-        const clientRes = await importGitHubRepositoryViaZip(parsed.owner, parsed.repo, parsed.branch);
-        if (controller.signal.aborted) return;
-        importProject(clientRes.projectName, clientRes.files, clientRes.metadata);
-        setIsGitHubModalOpen(false);
-        setGitHubUrl("");
-      } catch (clientErr) {
-        if (controller.signal.aborted) return;
-        console.error("Client-side fallback failed:", clientErr);
-        const errText = "Failed to sync repository files. Please verify it is a public repository.";
-        setImportError(errText);
-        setAlertInfo({
-          title: "Repository Sync Failed",
-          message: errText
-        });
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsImporting(false);
-        }
-      }
-    };
-
-    // Trigger browser fallback if backend hangs for more than 7 seconds
-    const timeoutId = setTimeout(() => {
-      runClientSideFallback("Timeout");
-    }, 7000);
-
     try {
-      setIsImporting(true);
-      setImportError("");
-      
-      const res = await importGithubRepository({ url });
-      clearTimeout(timeoutId);
-
+      const res = await importGithubRepository({ url }, controller.signal);
       if (controller.signal.aborted) return;
 
-      if (res.success && !isResolved) {
-        isResolved = true;
-        importProject(res.data.projectName, res.data.files, res.data.metadata);
+      if (!res || res.success === false) {
+        if (res?.message === "canceled") return;
+        const errToThrow = res?.error || new Error(res?.message || "Failed to import GitHub repository.");
+        throw errToThrow;
+      }
+
+      // Stage 3: Processing files...
+      setImportStage("Processing files...");
+
+      let targetData = res.data;
+      if (targetData && targetData.data) {
+        targetData = targetData.data;
+      }
+
+      if (targetData && (targetData.files || targetData.projectName)) {
+        // Stage 4: Saving project...
+        setImportStage("Saving project...");
+
+        importProject(targetData.projectName, targetData.files || [], targetData.metadata);
+
+        if (targetData.id) {
+          localStorage.setItem(`aegis_project_files_${targetData.id}`, JSON.stringify(targetData.files || []));
+          localStorage.setItem(
+            `aegis_project_meta_${targetData.id}`,
+            JSON.stringify({ name: targetData.projectName, gitMetadata: targetData.metadata })
+          );
+        }
+
+        if (refreshProjects) {
+          await refreshProjects();
+        }
+
+        // Stage 5: Completed.
+        setImportStage("Completed.");
         setIsGitHubModalOpen(false);
         setGitHubUrl("");
-        setIsImporting(false);
-      } else if (!isResolved) {
-        await runClientSideFallback(res.message || "Backend error");
+
+        if (targetData.id) {
+          navigate(`/workspace/${targetData.id}`);
+        }
+      } else {
+        throw new Error("Invalid response format received from server.");
       }
     } catch (err) {
-      clearTimeout(timeoutId);
       if (controller.signal.aborted) return;
-      if (!isResolved) {
-        await runClientSideFallback(err.message || "Connection refused");
+
+      const code = err.response?.data?.code || err.response?.data?.errorCode;
+      const backendMessage = err.response?.data?.message;
+
+      let errorMsg = backendMessage;
+      if (!errorMsg) {
+        switch (code) {
+          case "INVALID_URL":
+            errorMsg = "Invalid repository URL. Please verify the URL and try again.";
+            break;
+          case "PRIVATE_REPOSITORY":
+            errorMsg = "Access denied. AegisCode only supports public GitHub repositories.";
+            break;
+          case "REPOSITORY_NOT_FOUND":
+            errorMsg = "Repository not found. Please verify the repository is public and the URL is correct.";
+            break;
+          case "CLONE_FAILED":
+            errorMsg = "Failed to clone repository. Please try again later.";
+            break;
+          case "NETWORK_ERROR":
+            errorMsg = "Network failure while connecting to GitHub. Please check your connection.";
+            break;
+          case "IMPORT_FAILED":
+          default:
+            errorMsg = err.message || "Failed to import GitHub repository.";
+            break;
+        }
       }
+
+      setImportError(errorMsg);
+      setAlertInfo({
+        title: "Repository Import Failed",
+        message: errorMsg
+      });
+    } finally {
+      setIsImporting(false);
+      setImportStage("");
     }
   };
 
-  const autoImportGitHubRepo = async (url) => {
-    await runGitHubImport(url);
-  };
-
-  // Reset/sync files to empty when project switches, or auto-import if configured
+  // Reset/sync files when project switches, or auto-import if GitHub URL exists
   useEffect(() => {
     if (currentProject) {
-      // 1. Immediately reset files list and details
-      importProject(currentProject.name, []);
+      if (currentProject.id !== loadedProjectId) {
+        // Abort any active imports from previous projects
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+        }
+        setIsImporting(false);
+        setImportError("");
+        setAlertInfo(null);
 
-      // 2. Trigger sync if URL exists
-      if (currentProject.githubUrl) {
-        autoImportGitHubRepo(currentProject.githubUrl);
+        setLoadedProjectId(currentProject.id);
+
+        const savedFiles = localStorage.getItem(`aegis_project_files_${currentProject.id}`);
+        let hasFiles = false;
+        if (savedFiles) {
+          try {
+            const parsed = JSON.parse(savedFiles);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              importProject(currentProject.name, parsed);
+              hasFiles = true;
+            }
+          } catch (e) {}
+        }
+
+        if (!hasFiles && currentProject.githubUrl) {
+          runGitHubImport(currentProject.githubUrl);
+        }
       }
     }
-  }, [currentProject]);
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [currentProject, loadedProjectId]);
 
   const handleAnalyzeProject = (startOffset = 0) => {
     const offset = (typeof startOffset === "number") ? startOffset : 0;
-    setActiveAnalysisTab("project");
     analyzeProjectAi(projectName, files, offset);
   };
 
-  const handleRefactorRequest = async () => {
-    if (!currentFile || !editorRef.current) return;
-    if (isRefactoring) return; // Prevent duplicate submissions
-
-    const editor = editorRef.current;
-    const model = editor.getModel();
-    const selection = editor.getSelection();
-    const selectedText = model ? model.getValueInRange(selection) : "";
-    const cursorLine = selection ? selection.startLineNumber : 1;
-    const fileContent = currentFile.content || "";
-    const language = currentFile.language || "text";
-
-    if (!fileContent.trim()) {
-      setAlertInfo({
-        title: "No Code to Refactor",
-        message: "The current file is empty. Please write some code before requesting a refactor."
-      });
-      return;
-    }
-
-    let scope = refactorScope;
-    if (!selectedText.trim() && scope === "selection") {
-      scope = "method";
-    }
-
-    const intent = refactorIntent.trim() || "Improve readability, reduce complexity, and apply best practices";
-
-    setIsRefactoring(true);
-    setShowRefactorSetup(false);
-
-    const res = await refactorCode({
-      language,
-      fileContent,
-      selectedText,
-      scope,
-      cursorLine,
-      intent
-    });
-
-    setIsRefactoring(false);
-
-    if (res && res.success) {
-      setRefactorResult(res.data);
-    } else {
-      setAlertInfo({
-        title: "Refactoring Failed",
-        message: res?.message || "An error occurred while communicating with the AI refactoring service. Please try again."
-      });
-    }
-  };
-
-  const handleAcceptRefactor = () => {
-    if (!refactorResult || !editorRef.current) return;
-
-    const editor = editorRef.current;
-    const model = editor.getModel();
-    const original = refactorResult.originalCode || "";
-    const refactored = refactorResult.refactoredCode || "";
-
-    if (refactorScope === "file") {
-      // Replace entire file content
-      updateCurrentFile(refactored);
-    } else {
-      // Find-and-replace the original segment in the file
-      const currentContent = model ? model.getValue() : currentFile.content;
-      const idx = currentContent.indexOf(original);
-      if (idx !== -1) {
-        const updated = currentContent.slice(0, idx) + refactored + currentContent.slice(idx + original.length);
-        updateCurrentFile(updated);
-      } else {
-        // Fallback: replace entire file with the AI refactored code
-        updateCurrentFile(refactored);
-      }
-    }
-    setRefactorResult(null);
-  };
 
   const handleOpenFolderClick = () => {
     if (!currentProject) return;
-    const isSupported =
-      typeof HTMLInputElement !== "undefined" &&
-      "webkitdirectory" in HTMLInputElement.prototype;
-
-    if (!isSupported) {
-      setAlertInfo({
-        title: "Browser Unsupported",
-        message: "Your browser does not support folder uploading. Please try using a modern browser like Chrome, Edge, or Firefox."
-      });
-      return;
-    }
-    fileInputRef.current.click();
+    setIsUploadModalOpen(true);
   };
 
-  const handleFolderUpload = async (e) => {
-    const rawFiles = e.target.files;
-    if (!rawFiles || rawFiles.length === 0) return;
-
-    try {
-      const result = await importFolder(rawFiles);
-      importProject(result.projectName, result.files);
-    } catch (err) {
-      console.error(err);
-      setAlertInfo({
-        title: "Folder Import Failed",
-        message: err.message || "An unexpected error occurred while importing the folder."
-      });
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
+  const handleUploadSuccess = (result) => {
+    importProject(result.projectName, result.files);
   };
 
   const validateGitHubUrl = (url) => {
@@ -327,6 +287,7 @@ function Workspace() {
 
   const handleGitHubImport = async (e) => {
     e.preventDefault();
+    if (isImporting) return;
     const url = gitHubUrl.trim();
 
     const validationMsg = validateGitHubUrl(url);
@@ -384,38 +345,25 @@ function Workspace() {
 
   // Filter files dynamically based on selected card in Project Overview
   const getFilteredFiles = () => {
-    if (!analysisResults || filterType === "all") return files;
+    return files;
+  };
 
-    return files.filter(file => {
-      const insight = analysisResults.fileInsights[file.id];
-      if (!insight) return false;
-
-      switch (filterType) {
-        case "classes":
-          return insight.classes > 0;
-        case "methods":
-          return insight.methods > 0;
-        case "loc":
-          return insight.lines > 0;
-        case "complexity":
-          return insight.complexity > 10;
-        case "todos":
-          return insight.todoCount > 0;
-        case "security":
-          return analysisResults.securityWarnings.some(w => w.file === (file.path || file.name));
-        default:
-          return true;
-      }
-    });
+  const handleImportGitHubClick = () => {
+    if (isImporting) return;
+    if (currentProject && currentProject.githubUrl) {
+      runGitHubImport(currentProject.githubUrl);
+    } else {
+      setIsGitHubModalOpen(true);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+    <div className="h-screen overflow-hidden bg-slate-950 text-white flex flex-col">
       <Navbar
         onOpenFolder={handleOpenFolderClick}
-        onShowDashboard={() => setCurrentFileId(null)}
-        onAIChat={() => { setCurrentFileId(null); setActiveAnalysisTab("chat"); }}
-        currentFileId={currentFileId}
+        githubUrl={currentProject?.githubUrl || null}
+        onImportGitHub={handleImportGitHubClick}
+        isSyncing={isImporting}
       />
 
       {projectsLoading ? (
@@ -450,26 +398,37 @@ function Workspace() {
           </div>
         </div>
       ) : (
-        /* 4. Complete Workspace Layout */
-        <WorkspaceLayout
-          sidebar={
-            <Sidebar
-              projectName={projectName}
-              files={getFilteredFiles()}
-              currentFileId={currentFileId}
-              onSelectFile={setCurrentFileId}
-              onAddNewFile={addNewFile}
-              onDeleteFile={deleteFile}
-              onImportProject={importProject}
-              setAlertInfo={setAlertInfo}
-              stats={getProjectStats()}
-              filterType={filterType}
-              onSelectFilter={setFilterType}
-              analysisResults={analysisResults}
-              gitMetadata={gitMetadata}
-              lastOpenedFileId={lastOpenedFileId}
-              lastOpenedFileName={files.find(f => f.id === lastOpenedFileId)?.name || ""}
-              onLoadAnalysisResult={(summary, loc, classes, methods) => {
+        /* 4. Complete Workspace Layout Container */
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <Outlet
+            context={{
+              files: getFilteredFiles(),
+              currentFile,
+              currentFileId,
+              setCurrentFileId,
+              updateCurrentFile,
+              updateCurrentFileLanguage,
+              addNewFile,
+              addNewFolder,
+              renameItem,
+              deleteItem,
+              moveItem,
+              importProject,
+              getProjectStats,
+              gitMetadata,
+              projectName,
+              analysisResults,
+              projectAiResult,
+              projectAiLoading,
+              projectAiError,
+              handleAnalyzeProject,
+              isImporting,
+              runGitHubImport,
+              githubUrl: gitHubUrl,
+              setAlertInfo,
+              filterType,
+              setFilterType,
+              onLoadAnalysisResult: (summary, loc, classes, methods) => {
                 setResult({
                   summary,
                   bugs: [],
@@ -478,172 +437,25 @@ function Workspace() {
                   tests: [],
                   metrics: { lines: loc, classes, methods, todos: 0, printStatements: 0 }
                 });
-                setActiveAnalysisTab("file");
-              }}
-              isImporting={isImporting}
-            />
-          }
-          editor={
-            currentFile ? (
-              <div className="h-full flex flex-col">
-                <EditorToolbar
-                  currentFile={currentFile}
-                  onCopy={() => {
-                    if (currentFile) {
-                      navigator.clipboard.writeText(currentFile.content);
-                    }
-                  }}
-                  onLanguageChange={updateCurrentFileLanguage}
-                />
-                <div className="flex-1 min-h-0 relative">
-                  <CodeEditor
-                    language={currentFile.language}
-                    code={currentFile.content}
-                    setCode={updateCurrentFile}
-                    editorRef={editorRef}
-                  />
-                </div>
-
-                <div className="p-4 border-t border-slate-800 flex flex-col gap-3 relative">
-                  {/* Analyze Row */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <AnalyzeButton
-                        onAnalyze={async () => {
-                          if (currentFile) {
-                            setActiveAnalysisTab("file");
-                            const res = await analyzeCode({
-                              language: currentFile.language,
-                              code: currentFile.content,
-                              projectName: projectName,
-                              fileName: currentFile.name,
-                              projectId: currentProject?.id || null
-                            });
-                            if (!res.success) {
-                              setAlertInfo({
-                                title: "Analysis Failed",
-                                message: res.message
-                              });
-                            }
-                          }
-                        }}
-                        loading={analysisLoading}
-                      />
-                    </div>
-
-                    {/* Refactor Button */}
-                    <button
-                      onClick={() => setShowRefactorSetup(prev => !prev)}
-                      disabled={isRefactoring}
-                      className="flex items-center gap-2 bg-indigo-700 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-indigo-950/30 transform hover:-translate-y-0.5 cursor-pointer text-sm"
-                    >
-                      {isRefactoring ? (
-                        <>
-                          <span className="animate-spin">⟳</span> Refactoring…
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                            <path d="M17.65 6.35A7.958 7.958 0 0012 4C7.58 4 4 7.58 4 12s3.58 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                          </svg>
-                          <span>AI Refactor</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Refactor setup menu overlay */}
-                  {showRefactorSetup && (
-                    <div className="absolute bottom-[72px] right-4 left-4 sm:left-auto sm:w-80 z-20 bg-slate-950/95 backdrop-blur-md border border-slate-800 p-4 rounded-xl shadow-2xl flex flex-col gap-3 animate-fadeIn">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Refactor Scope</span>
-                        <div className="flex gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-850">
-                          {["selection", "method", "file"].map(scope => (
-                            <button
-                              key={scope}
-                              onClick={() => setRefactorScope(scope)}
-                              className={`text-[10px] font-semibold py-1 px-2.5 rounded-md capitalize cursor-pointer transition ${
-                                refactorScope === scope ? "bg-indigo-600 text-white font-bold" : "text-slate-500 hover:text-white"
-                              }`}
-                            >
-                              {scope}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Prompt */}
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Instructions for AI (optional)</label>
-                        <input
-                          type="text"
-                          value={refactorIntent}
-                          onChange={e => setRefactorIntent(e.target.value)}
-                          placeholder="e.g. Simplify the loop, rename variables for clarity…"
-                          className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs text-white placeholder-slate-600 outline-none focus:ring-1 focus:ring-indigo-500/40 transition"
-                        />
-                      </div>
-
-                      {/* Submit */}
-                      <button
-                        onClick={handleRefactorRequest}
-                        disabled={isRefactoring}
-                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 rounded-lg transition-all cursor-pointer"
-                      >
-                        {isRefactoring ? "Refactoring…" : "Run AI Refactor"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <ProjectDashboard
-                projectName={projectName}
-                analysisResults={analysisResults}
-                onOpenFile={setCurrentFileId}
-                gitMetadata={gitMetadata}
-                onRunProjectAiAnalysis={handleAnalyzeProject}
-                projectAiLoading={projectAiLoading}
-                staticLoading={staticLoading}
-                lastOpenedFileId={lastOpenedFileId}
-                lastOpenedFileName={files.find(f => f.id === lastOpenedFileId)?.name || ""}
-                projectId={currentProject?.id || null}
-              />
-            )
-          }
-          rightPanel={
-            <RightPanel
-              projectAiResult={projectAiResult}
-              projectAiLoading={projectAiLoading}
-              projectAiError={projectAiError}
-              onRunProjectAnalysis={handleAnalyzeProject}
-              activeTab={activeAnalysisTab}
-              setActiveTab={setActiveAnalysisTab}
-              projectName={projectName}
-              currentFile={currentFile}
-              files={files}
-              analysisResults={analysisResults}
-              projectId={currentProject?.id || null}
-            />
-          }
-          statusBar={
-            <StatusBar
-              language={currentFile?.language || ""}
-              code={currentFile?.content || ""}
-            />
-          }
-        />
+                navigate(`/workspace/${projectId}/inspect-file`);
+              },
+              analyzeCode,
+              analysisLoading,
+              analysisResult: result,
+              setResult,
+              currentProject,
+              editorRef,
+              staticLoading
+            }}
+          />
+        </div>
       )}
 
-      {/* Reusable file input for folder uploading */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFolderUpload}
-        className="hidden"
-        webkitdirectory="true"
-        directory="true"
-        multiple
+      {/* Upload Folder / Files Modal */}
+      <UploadFolderModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUploadSuccess={handleUploadSuccess}
       />
 
       {/* GitHub Repo Import Modal */}
@@ -701,7 +513,7 @@ function Workspace() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span>Importing...</span>
+                      <span>{importStage}</span>
                     </>
                   ) : (
                     <span>Import</span>
@@ -713,20 +525,6 @@ function Workspace() {
         </div>
       )}
 
-      {/* Refactor confirmation alert modal */}
-      {refactorResult && (
-        <RefactorModal
-          isOpen={true}
-          onClose={() => setRefactorResult(null)}
-          onAccept={handleAcceptRefactor}
-          originalCode={refactorResult.originalCode}
-          refactoredCode={refactorResult.refactoredCode}
-          explanation={refactorResult.explanation}
-          improvements={refactorResult.improvements || []}
-          language={currentFile?.language || "text"}
-          fileName={currentFile?.name || "file"}
-        />
-      )}
 
       {/* AlertModal Dialog */}
       <AlertModal

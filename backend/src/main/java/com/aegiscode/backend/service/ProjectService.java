@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProjectService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProjectService.class);
+
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final AnalysisRepository analysisRepository;
@@ -30,8 +32,14 @@ public class ProjectService {
 
     public ProjectResponse createProject(ProjectRequest request,
                                          Authentication authentication) {
-
+        if (authentication == null) {
+            throw new IllegalArgumentException("Authentication is required.");
+        }
         String email = authentication.getName();
+
+        if (request == null || request.getName() == null || request.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Project name is required.");
+        }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));

@@ -7,7 +7,7 @@ export async function getProjects() {
 
 export async function createProject(data) {
   const response = await axiosClient.post("/api/projects", data);
-  return response.data; // Created project details
+  return response.data;
 }
 
 export async function deleteProjectApi(id) {

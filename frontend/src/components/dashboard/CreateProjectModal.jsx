@@ -23,11 +23,13 @@ export default function CreateProjectModal({ isOpen, onClose }) {
       return;
     }
 
-    const result = await createProject({
+    const payload = {
       name: name.trim(),
       description: description.trim(),
       githubUrl: githubUrl.trim(),
-    });
+    };
+
+    const result = await createProject(payload);
 
     if (result.success) {
       setName("");

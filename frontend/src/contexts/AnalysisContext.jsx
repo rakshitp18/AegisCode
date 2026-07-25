@@ -3,7 +3,6 @@ import {
   analyzeCode as analyzeCodeApi,
   analyzeProject as analyzeProjectApi,
   analyzeProjectStatic as analyzeProjectStaticApi,
-  refactorCode as refactorCodeApi,
   chatWithProject as chatWithProjectApi,
   importGithubRepository as importGithubRepositoryApi,
   getProjectHistory as getProjectHistoryApi,
@@ -21,7 +20,6 @@ export function AnalysisProvider({ children }) {
   const [loading, setLoading] = useState(false); // Map to single-file analysis loading
   const [projectAnalyzeLoading, setProjectAnalyzeLoading] = useState(false);
   const [staticAnalyzeLoading, setStaticAnalyzeLoading] = useState(false);
-  const [refactorLoading, setRefactorLoading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -87,21 +85,6 @@ export function AnalysisProvider({ children }) {
     }
   };
 
-  const refactorCode = async (data) => {
-    if (refactorLoading) return { success: false, message: "Request in progress" };
-    setRefactorLoading(true);
-    setError(null);
-    try {
-      const result = await refactorCodeApi(data);
-      return { success: true, data: result };
-    } catch (err) {
-      const errMsg = err.response?.data?.error || "Refactoring failed";
-      setError(errMsg);
-      return { success: false, message: errMsg };
-    } finally {
-      setRefactorLoading(false);
-    }
-  };
 
   const chatWithProject = async (data) => {
     if (chatLoading) return { success: false, message: "Request in progress" };
@@ -119,17 +102,21 @@ export function AnalysisProvider({ children }) {
     }
   };
 
-  const importGithubRepository = async (data) => {
+  const importGithubRepository = async (data, signal) => {
     if (importLoading) return { success: false, message: "Request in progress" };
     setImportLoading(true);
     setError(null);
     try {
-      const result = await importGithubRepositoryApi(data);
-      return { success: true, data: result };
+      const result = await importGithubRepositoryApi(data, signal);
+      const payload = result?.success ? result.data : result;
+      return { success: true, data: payload };
     } catch (err) {
-      const errMsg = err.response?.data?.error || "GitHub repository import failed";
+      if (err.name === "CanceledError" || err.name === "AbortError" || (err.message && err.message.includes("canceled"))) {
+        return { success: false, message: "canceled" };
+      }
+      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message || "GitHub repository import failed";
       setError(errMsg);
-      return { success: false, message: errMsg };
+      return { success: false, message: errMsg, error: err };
     } finally {
       setImportLoading(false);
     }
@@ -181,7 +168,6 @@ export function AnalysisProvider({ children }) {
     loading, // Used by file analysis loaders
     projectAnalyzeLoading,
     staticAnalyzeLoading,
-    refactorLoading,
     chatLoading,
     importLoading,
     historyLoading,
@@ -191,7 +177,6 @@ export function AnalysisProvider({ children }) {
     analyzeCode,
     analyzeProject,
     analyzeProjectStatic,
-    refactorCode,
     chatWithProject,
     importGithubRepository,
     fetchProjectHistory,

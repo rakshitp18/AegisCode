@@ -19,6 +19,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "github_access_token", nullable = true)
+    private String githubAccessToken;
+
     public User() {}
 
     public User(String name, String email, String password) {
@@ -57,5 +60,13 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getGithubAccessToken() {
+        return githubAccessToken;
+    }
+
+    public void setGithubAccessToken(String githubAccessToken) {
+        this.githubAccessToken = githubAccessToken;
     }
 }

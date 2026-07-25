@@ -9,7 +9,7 @@ public class DashboardResponse {
     private Long totalAnalyses;
     private Long totalFilesAnalyzed;
     private Long bugsFound;
-    private Long refactorsPerformed;
+
     private Long githubReposImported;
 
     private Map<String, Long> languagesAnalysed;
@@ -33,8 +33,7 @@ public class DashboardResponse {
     public Long getBugsFound() { return bugsFound; }
     public void setBugsFound(Long bugsFound) { this.bugsFound = bugsFound; }
 
-    public Long getRefactorsPerformed() { return refactorsPerformed; }
-    public void setRefactorsPerformed(Long refactorsPerformed) { this.refactorsPerformed = refactorsPerformed; }
+
 
     public Long getGithubReposImported() { return githubReposImported; }
     public void setGithubReposImported(Long githubReposImported) { this.githubReposImported = githubReposImported; }

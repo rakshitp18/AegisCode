@@ -83,9 +83,10 @@ export async function importFolder(filesList) {
   const fileArray = Array.from(filesList);
   const validFiles = [];
 
-  // Determine project name from the first file's webkitRelativePath
+  // Determine project name from the first file's path
   let projectName = "Uploaded Project";
-  const samplePath = fileArray.find(f => f.webkitRelativePath)?.webkitRelativePath;
+  const sample = fileArray.find(f => f.webkitRelativePath || f.relativePath);
+  const samplePath = sample ? (sample.webkitRelativePath || sample.relativePath) : null;
   if (samplePath) {
     const normalizedSample = samplePath.replace(/\\/g, "/");
     const firstSlash = normalizedSample.indexOf("/");
@@ -95,7 +96,7 @@ export async function importFolder(filesList) {
   }
 
   for (const file of fileArray) {
-    const fullPath = file.webkitRelativePath || file.name;
+    const fullPath = file.webkitRelativePath || file.relativePath || file.name;
     
     // Check if ignored
     if (isIgnored(fullPath)) continue;

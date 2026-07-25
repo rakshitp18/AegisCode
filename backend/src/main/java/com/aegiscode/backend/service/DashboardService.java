@@ -62,8 +62,6 @@ public class DashboardService {
                 .sum();
         response.setBugsFound(totalBugs);
 
-        // Refactors: Currently we don't have a Refactor entity, so we return 0 as a placeholder
-        response.setRefactorsPerformed(0L);
 
         long githubImports = userProjects.stream()
                 .filter(p -> p.getGithubUrl() != null && !p.getGithubUrl().trim().isEmpty())

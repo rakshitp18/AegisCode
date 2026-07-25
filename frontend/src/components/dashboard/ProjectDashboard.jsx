@@ -1,6 +1,6 @@
-
 import { useState } from "react";
 import DashboardAnalytics from "./DashboardAnalytics";
+import ProjectResultsPanel from "../analysis/ProjectResultsPanel";
 
 function ProjectDashboard({
   analysisResults,
@@ -8,6 +8,8 @@ function ProjectDashboard({
   gitMetadata = null,
   onRunProjectAiAnalysis,
   projectAiLoading,
+  projectAiResult = null,
+  projectAiError = null,
   staticLoading,
   lastOpenedFileId = null,
   lastOpenedFileName = "",
@@ -50,10 +52,10 @@ function ProjectDashboard({
   return (
     <div className="h-full overflow-y-auto bg-slate-955 p-4 text-slate-200 space-y-4">
       {/* View Selector Bar */}
-      <div className="flex bg-slate-900 border border-slate-800/80 p-1 rounded-xl gap-1 max-w-sm shrink-0">
+      <div className="flex bg-slate-900 border border-slate-800/80 p-1 rounded-xl gap-1 max-w-md shrink-0">
         <button
           onClick={() => setActiveViewTab("codebase")}
-          className={`flex-1 text-xs font-bold py-2 px-4 rounded-lg transition-all cursor-pointer ${
+          className={`flex-1 text-[11px] font-bold py-2 px-3 rounded-lg transition-all cursor-pointer ${
             activeViewTab === "codebase"
               ? "bg-blue-600 text-white shadow-md shadow-blue-950/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
@@ -63,7 +65,7 @@ function ProjectDashboard({
         </button>
         <button
           onClick={() => setActiveViewTab("analytics")}
-          className={`flex-1 text-xs font-bold py-2 px-4 rounded-lg transition-all cursor-pointer ${
+          className={`flex-1 text-[11px] font-bold py-2 px-3 rounded-lg transition-all cursor-pointer ${
             activeViewTab === "analytics"
               ? "bg-blue-600 text-white shadow-md shadow-blue-950/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
@@ -71,10 +73,29 @@ function ProjectDashboard({
         >
           📈 Analytics & Trends
         </button>
+        <button
+          onClick={() => setActiveViewTab("ai")}
+          className={`flex-1 text-[11px] font-bold py-2 px-3 rounded-lg transition-all cursor-pointer ${
+            activeViewTab === "ai"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-950/20"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+          }`}
+        >
+          🤖 Project AI Review
+        </button>
       </div>
 
       {activeViewTab === "analytics" ? (
         <DashboardAnalytics projectId={projectId} />
+      ) : activeViewTab === "ai" ? (
+        <div className="max-w-4xl mx-auto w-full p-2">
+          <ProjectResultsPanel
+            result={projectAiResult}
+            loading={projectAiLoading}
+            error={projectAiError}
+            onRunAnalysis={onRunProjectAiAnalysis}
+          />
+        </div>
       ) : !analysisResults ? (
         <div className="flex items-center justify-center text-slate-400 select-none py-24">
           <div className="text-center space-y-2">
@@ -111,22 +132,6 @@ function ProjectDashboard({
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => onRunProjectAiAnalysis(0)}
-              disabled={projectAiLoading}
-              className="text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-bold py-2 px-3.5 rounded-lg transition-all flex items-center gap-1.5 shadow-md border border-blue-500/20 cursor-pointer"
-            >
-              {projectAiLoading ? (
-                <>
-                  <span className="animate-spin block w-3 h-3 border-2 border-t-white border-white/20 rounded-full"></span>
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <span>🤖</span> Analyze Project
-                </>
-              )}
-            </button>
             {staticLoading && (
               <span className="text-[10px] bg-slate-800 text-slate-400 font-medium px-2 py-1.5 rounded-lg flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Re-evaluating AST...
@@ -527,81 +532,6 @@ function ProjectDashboard({
           </div>
         </div>
       )}
-
-      {/* 7. File Insights Table */}
-      <div className="glow-card p-5 rounded-xl space-y-3">
-        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest border-b border-slate-800 pb-2">
-          File Diagnostics & Insights
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-400">
-            <thead className="bg-slate-950 text-slate-300 font-semibold uppercase text-[10px]">
-              <tr>
-                <th className="py-2.5 px-3 rounded-l-lg">Filename</th>
-                <th className="py-2.5 px-3">Path</th>
-                <th className="py-2.5 px-3 text-center">Lines</th>
-                <th className="py-2.5 px-3 text-center">Classes</th>
-                <th className="py-2.5 px-3 text-center">Methods</th>
-                <th className="py-2.5 px-3 text-center">TODOs</th>
-                <th className="py-2.5 px-3 text-center">Complexity</th>
-                <th className="py-2.5 px-3 text-center">Last Modified</th>
-                <th className="py-2.5 px-3 text-center rounded-r-lg">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {Object.keys(fileInsights).map((fileId) => {
-                const insight = fileInsights[fileId];
-                // Find matching file name/path
-                const fileObj = qualityMetrics.issues.find(i => i.fileId === fileId) || 
-                                (analysisResults.cache[fileId] ? { name: fileId, path: analysisResults.cache[fileId].result.path } : { name: "File", path: "" });
-                const actualName = analysisResults.cache[fileId]?.result.name || fileObj.name;
-                const actualPath = analysisResults.cache[fileId]?.result.path || fileObj.path;
-
-                return (
-                  <tr key={fileId} className="hover:bg-slate-800/20 transition-colors">
-                    <td className="py-3 px-3 font-semibold text-slate-200">
-                      <span className="flex items-center gap-1.5">
-                        <span>📄</span> {actualName}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 font-mono text-[10px] text-slate-500 max-w-[200px] truncate" title={actualPath}>
-                      {actualPath}
-                    </td>
-                    <td className="py-3 px-3 text-center text-slate-300">{insight.lines}</td>
-                    <td className="py-3 px-3 text-center text-slate-300">{insight.classes}</td>
-                    <td className="py-3 px-3 text-center text-slate-300">{insight.methods}</td>
-                    <td className="py-3 px-3 text-center">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        insight.todoCount > 0 ? "bg-amber-950/80 text-amber-400 border border-amber-900/30" : "text-slate-500"
-                      }`}>{insight.todoCount}</span>
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        insight.complexity > 25
-                          ? "bg-red-950 text-red-400 border border-red-900/30"
-                          : insight.complexity > 10
-                          ? "bg-amber-950 text-amber-400 border border-amber-900/30"
-                          : "bg-slate-800 text-slate-400 border border-slate-700/30"
-                      }`}>{insight.complexity}</span>
-                    </td>
-                    <td className="py-3 px-3 text-center text-slate-500 font-mono text-[10px]">
-                      {formatTime(insight.lastModified)}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <button
-                        onClick={() => onOpenFile(fileId)}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-2.5 py-1 rounded transition-colors text-[10px]"
-                      >
-                        Open
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       {/* 8. Dependency Coupling Graph */}
       {analysisResults.dependencyNodes && analysisResults.dependencyNodes.length > 0 && (

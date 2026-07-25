@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/projects")
 public class ProjectController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProjectController.class);
+
     private final ProjectService service;
 
     public ProjectController(ProjectService service) {
@@ -20,7 +22,6 @@ public class ProjectController {
     @PostMapping
     public ProjectResponse createProject(@jakarta.validation.Valid @RequestBody ProjectRequest request,
                                          Authentication authentication) {
-
         return service.createProject(request, authentication);
     }
     @GetMapping

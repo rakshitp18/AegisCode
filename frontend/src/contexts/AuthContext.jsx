@@ -19,22 +19,52 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
+  const logout = (shouldRedirect = false) => {
     localStorage.removeItem("token");
+    if (shouldRedirect) {
+      window.location.href = "/";
+      return;
+    }
     setToken(null);
     setUser(null);
+  };
+
+  const loadUserProfile = (email) => {
+    try {
+      const stored = localStorage.getItem(`profile_${email}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error("Failed to load user profile:", e);
+    }
+    return { name: email.split("@")[0], image: null };
+  };
+
+  const updateProfile = (name, image) => {
+    if (!user) return;
+    const email = user.email;
+    const profile = { name, image };
+    localStorage.setItem(`profile_${email}`, JSON.stringify(profile));
+    setUser({ email, ...profile });
   };
 
   // Restore user from token on startup or refresh
   useEffect(() => {
     const restoreAuth = async () => {
-      const storedToken = localStorage.getItem("token");
-      if (storedToken) {
-        setToken(storedToken);
-        // In a real app we might fetch user profile here. For now we parse token or set basic authenticated state
-        setUser({ email: parseEmailFromToken(storedToken) });
+      try {
+        const storedToken = localStorage.getItem("token");
+        if (storedToken) {
+          setToken(storedToken);
+          const email = parseEmailFromToken(storedToken);
+          const profile = loadUserProfile(email);
+          setUser({ email, name: profile.name, image: profile.image });
+        }
+      } catch (e) {
+        console.error("Failed to restore authentication state:", e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     restoreAuth();
   }, []);
@@ -56,7 +86,9 @@ export function AuthProvider({ children }) {
       const data = await loginRequest(email, password);
       localStorage.setItem("token", data.token);
       setToken(data.token);
-      setUser({ email: parseEmailFromToken(data.token) });
+      const userEmail = parseEmailFromToken(data.token);
+      const profile = loadUserProfile(userEmail);
+      setUser({ email: userEmail, name: profile.name, image: profile.image });
       return { success: true };
     } catch (error) {
       logout();
@@ -73,6 +105,8 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       await registerRequest(name, email, password);
+      // Save their registration name to local storage profile so they start with it
+      localStorage.setItem(`profile_${email}`, JSON.stringify({ name, image: null }));
       // Auto login user after registration
       return await login(email, password);
     } catch (error) {
@@ -97,6 +131,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     isAuthenticated,
+    updateProfile,
   };
 
   return (
