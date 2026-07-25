@@ -161,6 +161,3 @@ Open `http://localhost:5173` in your browser.
 - `DELETE /api/analyses/{id}` — Delete an analysis record
 
 ---
-
-## 📄 License
-This project is licensed under the MIT License.
