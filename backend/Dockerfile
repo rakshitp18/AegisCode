@@ -7,7 +7,7 @@ COPY . .
 
 # Grant execute permission to Maven wrapper and build jar
 RUN chmod +x ./mvnw
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -DskipTests --no-transfer-progress
 
 # Stage 2: Production runtime image
 FROM eclipse-temurin:17-jre-alpine
