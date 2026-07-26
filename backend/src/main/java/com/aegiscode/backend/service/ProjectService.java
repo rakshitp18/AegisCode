@@ -30,6 +30,7 @@ public class ProjectService {
         this.analysisRepository = analysisRepository;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public ProjectResponse createProject(ProjectRequest request,
                                          Authentication authentication) {
         if (authentication == null) {
@@ -61,6 +62,7 @@ public class ProjectService {
         );
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<ProjectResponse> getMyProjects(Authentication authentication) {
 
         String email = authentication.getName();

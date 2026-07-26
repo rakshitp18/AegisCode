@@ -68,6 +68,7 @@ public class AnalyzerService {
     /**
      * Analyze code and persist the result to the database if projectId and auth are provided.
      */
+    @org.springframework.transaction.annotation.Transactional
     public AnalysisResponse analyzeAndPersist(CodeRequest request, Authentication auth) {
         AnalysisResponse response = analyzeCode(request.getLanguage(), request.getCode());
 
