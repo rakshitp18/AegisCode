@@ -56,10 +56,11 @@ public class GitHubOAuthController {
             return ResponseEntity.ok(response);
         }
 
-        String encodedRedirect = URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
+        String sanitizedRedirectUri = redirectUri != null ? redirectUri.trim().replaceAll("(?<!:)/{2,}", "/") : "";
+        String encodedRedirect = URLEncoder.encode(sanitizedRedirectUri, StandardCharsets.UTF_8);
         String url = String.format(
                 "https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=repo%%20user",
-                clientId, encodedRedirect
+                clientId.trim(), encodedRedirect
         );
 
         response.put("enabled", "true");
