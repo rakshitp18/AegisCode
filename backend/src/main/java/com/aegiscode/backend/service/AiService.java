@@ -29,6 +29,12 @@ public class AiService {
     @Value("${groq.api.key:${GROQ_API_KEY:your_groq_api_key_here}}")
     private String apiKey;
 
+    @Value("${groq.model.primary:${GROQ_PRIMARY_MODEL:openai/gpt-oss-120b}}")
+    private String primaryModel = "openai/gpt-oss-120b";
+
+    @Value("${groq.model.fallback:${GROQ_FALLBACK_MODEL:qwen/qwen3.8-27b}}")
+    private String fallbackModel = "qwen/qwen3.8-27b";
+
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final AiResponseParser responseParser;
@@ -44,6 +50,14 @@ public class AiService {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .build();
+    }
+
+    private String getPrimaryModel() {
+        return (primaryModel != null && !primaryModel.isBlank()) ? primaryModel.trim() : "openai/gpt-oss-120b";
+    }
+
+    private String getFallbackModel() {
+        return (fallbackModel != null && !fallbackModel.isBlank()) ? fallbackModel.trim() : "qwen/qwen3.8-27b";
     }
 
     public AnalysisResponse analyzeWithAi(String language, String code) {
@@ -69,7 +83,7 @@ public class AiService {
 
         try {
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "llama-3.3-70b-versatile");
+            requestBody.put("model", getPrimaryModel());
             requestBody.put("temperature", 0.2);
 
             List<Map<String, String>> messages = new ArrayList<>();
@@ -133,7 +147,7 @@ public class AiService {
 
         try {
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "llama-3.3-70b-versatile");
+            requestBody.put("model", getPrimaryModel());
             requestBody.put("temperature", 0.2);
 
             List<Map<String, String>> messages = new ArrayList<>();
@@ -202,7 +216,7 @@ public class AiService {
 
         try {
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "llama-3.3-70b-versatile");
+            requestBody.put("model", getPrimaryModel());
             requestBody.put("temperature", 0.3);
 
             List<Map<String, String>> messages = new ArrayList<>();
@@ -237,8 +251,8 @@ public class AiService {
 
     private HttpResponse<String> sendHttpRequestWithFallback(String requestPayload) throws Exception {
         String keyToUse = apiKey;
-        String primaryModel = "llama-3.3-70b-versatile";
-        String fallbackModel = "llama-3.1-8b-instant";
+        String curPrimary = getPrimaryModel();
+        String curFallback = getFallbackModel();
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.groq.com/openai/v1/chat/completions"))
@@ -264,10 +278,10 @@ public class AiService {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         }
 
-        // Tier 1: If primary model is rate limited (429), try fallback model
-        if (response.statusCode() == 429) {
-            log.info("[AI Service] Primary model rate limited (429). Retrying with {}...", fallbackModel);
-            String fallbackPayload = requestPayload.replace(primaryModel, fallbackModel);
+        // Fallback if primary model returns 404 (model not found/deprecated) or 429 (rate limit)
+        if (response.statusCode() == 404 || response.statusCode() == 429) {
+            log.info("[AI Service] Primary model '{}' returned status {}. Retrying with fallback model '{}'...", curPrimary, response.statusCode(), curFallback);
+            String fallbackPayload = requestPayload.replace(curPrimary, curFallback);
 
             HttpRequest fallbackRequest = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.groq.com/openai/v1/chat/completions"))
