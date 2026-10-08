@@ -10,6 +10,12 @@ export default function GitHubCallback() {
   const processedRef = useRef(false);
 
   useEffect(() => {
+    const ghError = searchParams.get("error_description") || searchParams.get("error");
+    if (ghError) {
+      setError(`GitHub authorization error: ${ghError}`);
+      return;
+    }
+
     const code = searchParams.get("code");
     if (!code) {
       setError("No authorization code provided by GitHub.");

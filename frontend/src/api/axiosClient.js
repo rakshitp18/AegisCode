@@ -33,9 +33,17 @@ axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      localStorage.removeItem("token");
-      // Redirect to the login route
-      window.location.href = "/login";
+      const isAuthUrl = error.config?.url?.includes("/api/auth/");
+      const isAuthPage = typeof window !== "undefined" && (
+        window.location.pathname.startsWith("/auth/") ||
+        window.location.pathname.startsWith("/login") ||
+        window.location.pathname.startsWith("/register")
+      );
+
+      if (!isAuthUrl && !isAuthPage) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

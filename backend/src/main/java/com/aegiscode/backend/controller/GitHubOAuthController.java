@@ -47,16 +47,23 @@ public class GitHubOAuthController {
         this.restTemplate = new RestTemplate();
     }
 
+    private String getSanitizedRedirectUri() {
+        if (redirectUri == null || redirectUri.isBlank()) {
+            return "";
+        }
+        return redirectUri.trim().replaceAll("(?<!:)/{2,}", "/");
+    }
+
     @GetMapping("/login-url")
     public ResponseEntity<Map<String, String>> getGitHubLoginUrl() {
         Map<String, String> response = new HashMap<>();
         if (clientId == null || clientId.isBlank()) {
             response.put("enabled", "false");
-            response.put("message", "GitHub OAuth Client ID is not configured.");
+            response.put("message", "GitHub OAuth Client ID is not configured on the server.");
             return ResponseEntity.ok(response);
         }
 
-        String sanitizedRedirectUri = redirectUri != null ? redirectUri.trim().replaceAll("(?<!:)/{2,}", "/") : "";
+        String sanitizedRedirectUri = getSanitizedRedirectUri();
         String encodedRedirect = URLEncoder.encode(sanitizedRedirectUri, StandardCharsets.UTF_8);
         String url = String.format(
                 "https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=repo%%20user",
@@ -90,11 +97,12 @@ public class GitHubOAuthController {
             headers.set("Accept", "application/json");
             headers.set("User-Agent", "AegisCode-App");
 
+            String sanitizedRedirectUri = getSanitizedRedirectUri();
             Map<String, String> tokenRequest = new HashMap<>();
-            tokenRequest.put("client_id", clientId);
-            tokenRequest.put("client_secret", clientSecret);
-            tokenRequest.put("code", code);
-            tokenRequest.put("redirect_uri", redirectUri);
+            tokenRequest.put("client_id", clientId != null ? clientId.trim() : "");
+            tokenRequest.put("client_secret", clientSecret != null ? clientSecret.trim() : "");
+            tokenRequest.put("code", code.trim());
+            tokenRequest.put("redirect_uri", sanitizedRedirectUri);
 
             HttpEntity<Map<String, String>> entity = new HttpEntity<>(tokenRequest, headers);
             ResponseEntity<Map> tokenResponse = restTemplate.postForEntity(tokenUrl, entity, Map.class);
