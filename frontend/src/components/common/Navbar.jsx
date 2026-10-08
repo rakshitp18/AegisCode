@@ -271,10 +271,11 @@ function Navbar({ onOpenFolder, githubUrl, onImportGitHub, isSyncing = false }) 
                         if (res.data?.enabled && res.data?.url) {
                           window.location.href = res.data.url;
                         } else {
-                          alert(res.data?.message || "GitHub OAuth is not configured on this server.");
+                          alert(res.data?.message || "GitHub OAuth Client ID is not configured on the backend server.");
                         }
                       } catch (err) {
-                        alert("Failed to start GitHub authorization.");
+                        const msg = err.response?.data?.message || err.message || "Failed to reach backend server. Check API URL.";
+                        alert(`GitHub Authorization Error: ${msg}`);
                       }
                     }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors text-left cursor-pointer border-none bg-transparent"
